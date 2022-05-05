@@ -6,7 +6,7 @@ use std::cell::RefCell;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 thread_local! {
-    static DEFAULT_GENERATOR: RefCell<Generator<ThreadRng, StdSystemTime>> = Default::default();
+    static DEFAULT_GENERATOR: RefCell<Generator<ThreadRng>> = Default::default();
 }
 
 /// Generates a UUIDv7 object.
@@ -33,43 +33,48 @@ pub fn uuid7() -> Uuid {
 /// # Examples
 ///
 /// ```rust
-/// use uuid7::v7::{Generator, StdSystemTime};
+/// use uuid7::v7::Generator;
 ///
-/// let mut g = Generator::new(rand::rngs::OsRng, StdSystemTime);
+/// let mut g = Generator::new(rand::rngs::OsRng);
 /// println!("{}", g.generate());
 /// ```
 #[derive(Clone, Eq, PartialEq, Debug, Default)]
-pub struct Generator<R, C> {
+pub struct Generator<R> {
     timestamp: u64,
     counter: u64,
 
     /// Random number generator used by the generator.
     rng: R,
-
-    /// Timestamp source used by the generator.
-    clock: C,
 }
 
 const MAX_COUNTER: u64 = (1 << 42) - 1;
 
-impl<R: RngCore, C: UnixTsMs> Generator<R, C> {
+impl<R: RngCore> Generator<R> {
     /// Creates a generator.
-    pub fn new(rng: R, clock: C) -> Self {
+    pub fn new(rng: R) -> Self {
         Self {
             timestamp: Default::default(),
             counter: Default::default(),
             rng,
-            clock,
         }
     }
 
     /// Generates a new UUIDv7 object.
     pub fn generate(&mut self) -> Uuid {
-        let ts = self.clock.unix_ts_ms();
-        if ts > self.timestamp {
-            self.timestamp = ts;
+        self.generate_core(
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .expect("clock may have gone backwards")
+                .as_millis() as u64,
+        )
+    }
+
+    /// Generates a new UUIDv7 object from a `unix_ts_ms`.
+    fn generate_core(&mut self, unix_ts_ms: u64) -> Uuid {
+        if unix_ts_ms > self.timestamp {
+            self.timestamp = unix_ts_ms;
             self.counter = self.rng.next_u64() & MAX_COUNTER;
-        } else if ts + 10_000 > self.timestamp {
+        } else if unix_ts_ms + 10_000 > self.timestamp {
             self.counter += 1;
             if self.counter > MAX_COUNTER {
                 // increment timestamp at counter overflow
@@ -78,7 +83,7 @@ impl<R: RngCore, C: UnixTsMs> Generator<R, C> {
             }
         } else {
             // reset state if clock moves back more than ten seconds
-            self.timestamp = ts;
+            self.timestamp = unix_ts_ms;
             self.counter = self.rng.next_u64() & MAX_COUNTER;
         }
 
@@ -90,28 +95,10 @@ impl<R: RngCore, C: UnixTsMs> Generator<R, C> {
     }
 }
 
-/// Interface representing timestamp sources that return the Unix timestamp in milliseconds.
-pub trait UnixTsMs {
-    /// Returns the Unix timestamp in milliseconds.
-    fn unix_ts_ms(&mut self) -> u64;
-}
-
-/// Default [`UnixTsMs`] source that uses [`std::time::SystemTime`].
-#[derive(Clone, Debug, Default)]
-pub struct StdSystemTime;
-
-impl UnixTsMs for StdSystemTime {
-    fn unix_ts_ms(&mut self) -> u64 {
-        SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .expect("clock may have gone backwards")
-            .as_millis() as u64
-    }
-}
-
 #[cfg(test)]
 mod tests {
-    use super::uuid7;
+    use super::{uuid7, Generator};
+    use rand::rngs::ThreadRng;
 
     const N_SAMPLES: usize = 200_000;
     thread_local!(static SAMPLES: Vec<String> = (0..N_SAMPLES).map(|_| uuid7().into()).collect());
@@ -220,5 +207,20 @@ mod tests {
             let p = bins[i] as f64 / N_SAMPLES as f64;
             assert!((p - 0.5).abs() < margin, "random bit {}: {}", i, p);
         }
+    }
+
+    /// Generates increasing UUIDs even with decreasing or constant timestamp
+    #[test]
+    fn generates_increasing_uuids_even_with_decreasing_or_constant_timestamp() {
+        let ts = 0x0123_4567_89abu64;
+        let mut g: Generator<ThreadRng> = Default::default();
+        let mut prev = g.generate_core(ts);
+        assert!(prev.to_string().starts_with("01234567-89ab-7"));
+        for i in 0..N_SAMPLES as u64 {
+            let curr = g.generate_core(ts - i.min(4_000));
+            assert!(prev < curr);
+            prev = curr;
+        }
+        assert!(prev.to_string().starts_with("01234567-89a"));
     }
 }
