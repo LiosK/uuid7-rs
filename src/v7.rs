@@ -67,37 +67,87 @@ impl<R: RngCore> Generator<R> {
                 .expect("clock may have gone backwards")
                 .as_millis() as u64,
         )
+        .0
     }
 
     /// Generates a new UUIDv7 object from a `unix_ts_ms`.
-    fn generate_core(&mut self, unix_ts_ms: u64) -> Uuid {
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use uuid7::v7::{Generator, Status};
+    /// let mut g = Generator::new(rand::thread_rng());
+    ///
+    /// let ts = 0x017f_22e2_79b0u64;
+    /// let (first, status) = g.generate_core(ts);
+    /// assert_eq!(status, Status::NewTimestamp);
+    /// assert_eq!(first.as_bytes()[0..6], ts.to_be_bytes()[2..]);
+    ///
+    /// let (second, status) = g.generate_core(ts);
+    /// if status == Status::ClockRollback {
+    ///     panic!("clock moved backwards; monotonic order of UUIDs broken");
+    /// } else {
+    ///     assert!(second.as_bytes()[0..6] >= ts.to_be_bytes()[2..]);
+    /// }
+    /// ```
+    ///
+    /// # Returned values
+    ///
+    /// This method returns a generated UUID and one of the following status codes that describe
+    /// the internal state involved in the generation. The status codes are not error codes; a
+    /// caller can usually ignore them unless the monotonic order of generated UUIDs is of critical
+    /// importance to the application.
+    ///
+    /// - `NewTimestamp`: the up-to-date `unix_ts_ms` was used as the clock moved forwards.
+    /// - `CounterInc`: the counter was incremented because `unix_ts_ms` did not move forwards.
+    /// - `TimestampInc`: `unix_ts_ms` was incremented because the counter reached its maximum
+    ///   value.
+    /// - `ClockRollback`: the monotonic order of UUIDs was broken because the clock moved back
+    ///   more than ten seconds.
+    pub fn generate_core(&mut self, unix_ts_ms: u64) -> (Uuid, Status) {
+        let mut status = Status::NewTimestamp;
         if unix_ts_ms > self.timestamp {
             self.timestamp = unix_ts_ms;
             self.counter = self.rng.next_u64() & MAX_COUNTER;
         } else if unix_ts_ms + 10_000 > self.timestamp {
             self.counter += 1;
+            status = Status::CounterInc;
             if self.counter > MAX_COUNTER {
                 // increment timestamp at counter overflow
                 self.timestamp += 1;
                 self.counter = self.rng.next_u64() & MAX_COUNTER;
+                status = Status::TimestampInc;
             }
         } else {
             // reset state if clock moves back more than ten seconds
             self.timestamp = unix_ts_ms;
             self.counter = self.rng.next_u64() & MAX_COUNTER;
+            status = Status::ClockRollback;
         }
 
-        Uuid::from_fields_v7(
-            self.timestamp,
-            (self.counter >> 30) as u16,
-            ((self.counter & 0x3fff_ffff) << 32) | self.rng.next_u32() as u64,
+        (
+            Uuid::from_fields_v7(
+                self.timestamp,
+                (self.counter >> 30) as u16,
+                ((self.counter & 0x3fff_ffff) << 32) | self.rng.next_u32() as u64,
+            ),
+            status,
         )
     }
 }
 
+/// Status code returned by [`Generator::generate_core`] method.
+#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
+pub enum Status {
+    NewTimestamp,
+    CounterInc,
+    TimestampInc,
+    ClockRollback,
+}
+
 #[cfg(test)]
 mod tests {
-    use super::{uuid7, Generator};
+    use super::{uuid7, Generator, Status};
     use rand::rngs::ThreadRng;
 
     const N_SAMPLES: usize = 200_000;
@@ -214,13 +264,15 @@ mod tests {
     fn generates_increasing_uuids_even_with_decreasing_or_constant_timestamp() {
         let ts = 0x0123_4567_89abu64;
         let mut g: Generator<ThreadRng> = Default::default();
-        let mut prev = g.generate_core(ts);
-        assert!(prev.to_string().starts_with("01234567-89ab-7"));
+        let (mut prev, status) = g.generate_core(ts);
+        assert_eq!(status, Status::NewTimestamp);
+        assert_eq!(prev.as_bytes()[0..6], ts.to_be_bytes()[2..]);
         for i in 0..N_SAMPLES as u64 {
-            let curr = g.generate_core(ts - i.min(4_000));
+            let (curr, status) = g.generate_core(ts - i.min(4_000));
+            assert!(status == Status::CounterInc || status == Status::TimestampInc);
             assert!(prev < curr);
             prev = curr;
         }
-        assert!(prev.to_string().starts_with("01234567-89a"));
+        assert!(prev.as_bytes()[0..6] >= ts.to_be_bytes()[2..]);
     }
 }
