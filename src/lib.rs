@@ -62,12 +62,15 @@
 //! println!("{:?}", uuid.as_bytes()); // as 16-byte big-endian array
 //! ```
 
-mod uuid;
-pub use uuid::Uuid;
+#![cfg_attr(not(feature = "std"), no_std)]
 
-pub mod v7;
-#[doc(inline)]
-pub use v7::uuid7;
+mod id;
+pub use id::Uuid;
 
-mod v4;
-pub use v4::uuid4;
+pub mod gen7;
+
+mod entry;
+#[cfg(feature = "std")]
+pub use entry::uuid4;
+#[cfg(feature = "std")]
+pub use entry::uuid7;
