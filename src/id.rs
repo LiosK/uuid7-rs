@@ -98,6 +98,20 @@ impl From<Uuid> for String {
     }
 }
 
+#[cfg(feature = "uuid")]
+impl From<Uuid> for uuid::Uuid {
+    fn from(src: Uuid) -> Self {
+        uuid::Uuid::from_bytes(src.0)
+    }
+}
+
+#[cfg(feature = "uuid")]
+impl From<uuid::Uuid> for Uuid {
+    fn from(src: uuid::Uuid) -> Self {
+        Self(src.into_bytes())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::Uuid;
@@ -136,6 +150,8 @@ mod tests {
             assert_eq!(&from_utf8(&buf).unwrap(), text);
             #[cfg(feature = "std")]
             assert_eq!(&from_fields.to_string(), text);
+            #[cfg(feature = "uuid")]
+            assert_eq!(&uuid::Uuid::from(from_fields).to_string(), text);
         }
     }
 
@@ -155,5 +171,15 @@ mod tests {
             from_utf8(&buf).unwrap(),
             "ffffffff-ffff-ffff-ffff-ffffffffffff"
         );
+    }
+
+    #[test]
+    fn has_symmetric_converters() {
+        for (fs, _) in prepare_cases() {
+            let e = Uuid::from_fields_v7(fs.0, fs.1, fs.2);
+            assert_eq!(Uuid::from(<[u8; 16]>::from(e)), e);
+            #[cfg(feature = "uuid")]
+            assert_eq!(Uuid::from(<uuid::Uuid>::from(e)), e);
+        }
     }
 }
