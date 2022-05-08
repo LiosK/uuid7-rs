@@ -11,6 +11,8 @@ use uuid7::uuid7;
 let uuid = uuid7();
 println!("{}", uuid); // e.g. "01809424-3e59-7c05-9219-566f82fff672"
 println!("{:?}", uuid.as_bytes()); // as 16-byte big-endian array
+
+let uuid_string: String = uuid7().to_string();
 ```
 
 See [draft-peabody-dispatch-new-uuid-format-03](https://www.ietf.org/archive/id/draft-peabody-dispatch-new-uuid-format-03.html).
@@ -19,7 +21,7 @@ See [draft-peabody-dispatch-new-uuid-format-03](https://www.ietf.org/archive/id/
 
 This implementation produces identifiers with the following bit layout:
 
-```
+```text
  0                   1                   2                   3
  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -46,7 +48,7 @@ Where:
 - The remaining 32 `rand` bits are filled with a cryptographically strong random
   number.
 
-In the very rare circumstances where the 42-bit `counter` field reaches the
+In the very rare circumstances where the 42-bit `counter` field reaches its
 maximum value and can no more be incremented within the same timestamp, this
 library increments the `unix_ts_ms`; therefore, the `unix_ts_ms` may have a
 larger value than that of the real-time clock. This library goes on with such
@@ -55,7 +57,19 @@ rollbacks as long as the difference from the system clock is small enough. If
 the system clock moves back more than ten seconds, this library resets the
 generator state and thus breaks the monotonic order of generated identifiers.
 
-## Other features
+## Features
+
+Default features:
+
+- `std` enables the primary `uuid7()` function. Without `std`, this crate
+  provides limited functionality available under `no_std` environments.
+
+Optional features:
+
+- `uuid` (together with `std`) enables the `new_v7()` function that returns the
+  popular [uuid](https://crates.io/crates/uuid) crate's `Uuid` objects.
+
+## Other functionality
 
 This library also supports the generation of UUID version 4:
 
@@ -64,9 +78,28 @@ use uuid7::uuid4;
 
 let uuid = uuid4();
 println!("{}", uuid); // e.g. "2ca4b2ce-6c13-40d4-bccf-37d222820f6f"
-println!("{:?}", uuid.as_bytes()); // as 16-byte big-endian array
+```
+
+`gen7::Generator` provides a flexible interface to customize the various aspects
+of the UUIDv7 generation:
+
+```rust
+use uuid7::gen7::{Generator, Status};
+
+let mut g = Generator::new(rand::rngs::OsRng);
+let unix_ts_ms = 0x0123_4567_8901u64;
+let (uuid, status) = g.generate_core(unix_ts_ms);
+if status == Status::ClockRollback {
+    panic!("clock moved back; monotonic order was broken");
+} else {
+    println!("{}", uuid);
+}
 ```
 
 ## License
 
 Licensed under the Apache License, Version 2.0.
+
+## See also
+
+- [docs.rs/uuid7](https://docs.rs/uuid7)

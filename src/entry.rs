@@ -23,6 +23,8 @@ thread_local! {
 /// let uuid = uuid7();
 /// println!("{}", uuid); // e.g. "01809424-3e59-7c05-9219-566f82fff672"
 /// println!("{:?}", uuid.as_bytes()); // as 16-byte big-endian array
+///
+/// let uuid_string: String = uuid7().to_string();
 /// ```
 pub fn uuid7() -> Uuid {
     DEFAULT_GENERATOR.with(|g| g.borrow_mut().generate())
@@ -37,7 +39,6 @@ pub fn uuid7() -> Uuid {
 ///
 /// let uuid = uuid4();
 /// println!("{}", uuid); // e.g. "2ca4b2ce-6c13-40d4-bccf-37d222820f6f"
-/// println!("{:?}", uuid.as_bytes()); // as 16-byte big-endian array
 /// ```
 pub fn uuid4() -> Uuid {
     let mut bytes: [u8; 16] = random();

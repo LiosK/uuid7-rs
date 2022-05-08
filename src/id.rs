@@ -47,6 +47,11 @@ impl Uuid {
 
     /// Writes the 8-4-4-4-12 hexadecimal string representation to `buf` as an ASCII byte array.
     ///
+    /// This method primarily serves in the `no_std` environment where `String` is not readily
+    /// available. Use [`Display`](std::fmt::Display) trait and
+    /// [`to_string()`](std::string::ToString::to_string) method where available to get the
+    /// 8-4-4-4-12 canonical hexadecimal string representation.
+    ///
     /// # Panics
     ///
     /// This method panics if the length of `buf` is smaller than 36.

@@ -9,13 +9,35 @@ use std::time::{SystemTime, UNIX_EPOCH};
 /// Represents a UUIDv7 generator that encapsulates a counter and guarantees the monotonic order of
 /// UUIDs generated within the same millisecond.
 ///
+/// This type provides the interface to customize the random number generator, system clock, and
+/// counter overflow handling of a UUIDv7 generator. It also helps control the scope of guaranteed
+/// order of the generated UUIDs. The following example guarantees the process-wide (cross-thread)
+/// monotonicity using Rust's standard synchronization mechanism.
+///
 /// # Examples
 ///
 /// ```rust
+/// use std::sync::{Arc, Mutex};
+/// use std::thread::{spawn, yield_now};
 /// use uuid7::gen7::Generator;
 ///
-/// let mut g = Generator::new(rand::rngs::OsRng);
-/// println!("{}", g.generate());
+/// let g = Arc::new(Mutex::new(Generator::new(rand::rngs::OsRng)));
+/// let handle = {
+///     let g = Arc::clone(&g);
+///     spawn(move || {
+///         for _ in 0..8 {
+///             println!("{} by child", g.lock().unwrap().generate());
+///             yield_now();
+///         }
+///     })
+/// };
+///
+/// for _ in 0..8 {
+///     println!("{} by parent", g.lock().unwrap().generate());
+///     yield_now();
+/// }
+///
+/// handle.join().unwrap();
 /// ```
 #[derive(Clone, Eq, PartialEq, Debug, Default)]
 pub struct Generator<R> {
@@ -50,17 +72,9 @@ impl<R: RngCore> Generator<R> {
 
     /// Generates a new UUIDv7 object from a given `unix_ts_ms`.
     ///
-    /// This method returns a generated UUID and one of the following status codes that describe
-    /// the internal state involved in the generation. A caller can usually ignore them unless the
+    /// This method returns a generated UUID and one of the [`Status`] codes that describe the
+    /// internal state involved in the generation. A caller can usually ignore them unless the
     /// monotonic order of generated UUIDs is of critical importance to the application.
-    ///
-    /// - `NewTimestamp`: `unix_ts_ms` was used because it was greater than the previous one.
-    /// - `CounterInc`: the counter was incremented because `unix_ts_ms` was no greater than the
-    ///   previous one.
-    /// - `TimestampInc`: `unix_ts_ms` was incremented because the counter was incremented and
-    ///   reached its maximum value.
-    /// - `ClockRollback`: the monotonic order of UUIDs was broken because `unix_ts_ms` was more
-    ///   than ten seconds less than the previous one.
     ///
     /// # Examples
     ///
@@ -116,9 +130,16 @@ impl<R: RngCore> Generator<R> {
 /// Status code returned by [`Generator::generate_core`] method.
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
 pub enum Status {
+    /// Returned when `unix_ts_ms` was used because it was greater than the previous one.
     NewTimestamp,
+    /// Returned when the counter was incremented because `unix_ts_ms` was no greater than the
+    /// previous one.
     CounterInc,
+    /// Returned when `unix_ts_ms` was incremented because the counter was incremented and reached
+    /// its maximum value.
     TimestampInc,
+    /// Returned when the monotonic order of UUIDs was broken because `unix_ts_ms` was more than
+    /// ten seconds less than the previous one.
     ClockRollback,
 }
 
