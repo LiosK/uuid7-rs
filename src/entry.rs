@@ -1,12 +1,13 @@
-//! UUIDv7-related functionality
+//! Default generator and entry point functions
 
-use crate::Uuid;
-use rand::{rngs::ThreadRng, RngCore};
+#![cfg(feature = "std")]
+
+use crate::{gen7::Generator, Uuid};
+use rand::{random, rngs::ThreadRng};
 use std::cell::RefCell;
-use std::time::{SystemTime, UNIX_EPOCH};
 
 thread_local! {
-    static DEFAULT_GENERATOR: RefCell<Generator<ThreadRng, StdSystemTime>> = Default::default();
+    static DEFAULT_GENERATOR: RefCell<Generator<ThreadRng>> = Default::default();
 }
 
 /// Generates a UUIDv7 object.
@@ -22,95 +23,32 @@ thread_local! {
 /// let uuid = uuid7();
 /// println!("{}", uuid); // e.g. "01809424-3e59-7c05-9219-566f82fff672"
 /// println!("{:?}", uuid.as_bytes()); // as 16-byte big-endian array
+///
+/// let uuid_string: String = uuid7().to_string();
 /// ```
 pub fn uuid7() -> Uuid {
     DEFAULT_GENERATOR.with(|g| g.borrow_mut().generate())
 }
 
-/// Represents a UUIDv7 generator that encapsulates a counter and guarantees the monotonic order of
-/// UUIDs generated within the same millisecond.
+/// Generates a UUIDv4 object.
 ///
 /// # Examples
 ///
 /// ```rust
-/// use uuid7::v7::{Generator, StdSystemTime};
+/// use uuid7::uuid4;
 ///
-/// let mut g = Generator::new(rand::rngs::OsRng, StdSystemTime);
-/// println!("{}", g.generate());
+/// let uuid = uuid4();
+/// println!("{}", uuid); // e.g. "2ca4b2ce-6c13-40d4-bccf-37d222820f6f"
 /// ```
-#[derive(Clone, Eq, PartialEq, Debug, Default)]
-pub struct Generator<R, C> {
-    timestamp: u64,
-    counter: u64,
-
-    /// Random number generator used by the generator.
-    rng: R,
-
-    /// Timestamp source used by the generator.
-    clock: C,
-}
-
-const MAX_COUNTER: u64 = (1 << 42) - 1;
-
-impl<R: RngCore, C: UnixTsMs> Generator<R, C> {
-    /// Creates a generator.
-    pub fn new(rng: R, clock: C) -> Self {
-        Self {
-            timestamp: Default::default(),
-            counter: Default::default(),
-            rng,
-            clock,
-        }
-    }
-
-    /// Generates a new UUIDv7 object.
-    pub fn generate(&mut self) -> Uuid {
-        let ts = self.clock.unix_ts_ms();
-        if ts > self.timestamp {
-            self.timestamp = ts;
-            self.counter = self.rng.next_u64() & MAX_COUNTER;
-        } else if ts + 10_000 > self.timestamp {
-            self.counter += 1;
-            if self.counter > MAX_COUNTER {
-                // increment timestamp at counter overflow
-                self.timestamp += 1;
-                self.counter = self.rng.next_u64() & MAX_COUNTER;
-            }
-        } else {
-            // reset state if clock moves back more than ten seconds
-            self.timestamp = ts;
-            self.counter = self.rng.next_u64() & MAX_COUNTER;
-        }
-
-        Uuid::from_fields_v7(
-            self.timestamp,
-            (self.counter >> 30) as u16,
-            ((self.counter & 0x3fff_ffff) << 32) | self.rng.next_u32() as u64,
-        )
-    }
-}
-
-/// Interface representing timestamp sources that return the Unix timestamp in milliseconds.
-pub trait UnixTsMs {
-    /// Returns the Unix timestamp in milliseconds.
-    fn unix_ts_ms(&mut self) -> u64;
-}
-
-/// Default [`UnixTsMs`] source that uses [`std::time::SystemTime`].
-#[derive(Clone, Debug, Default)]
-pub struct StdSystemTime;
-
-impl UnixTsMs for StdSystemTime {
-    fn unix_ts_ms(&mut self) -> u64 {
-        SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .expect("clock may have gone backwards")
-            .as_millis() as u64
-    }
+pub fn uuid4() -> Uuid {
+    let mut bytes: [u8; 16] = random();
+    bytes[6] = 0x40 | (bytes[6] >> 4);
+    bytes[8] = 0x80 | (bytes[8] >> 2);
+    Uuid::from(bytes)
 }
 
 #[cfg(test)]
-mod tests {
+mod tests_v7 {
     use super::uuid7;
 
     const N_SAMPLES: usize = 200_000;
@@ -217,6 +155,74 @@ mod tests {
         // set margin based on binom dist 99.999% confidence interval
         let margin = 4.417173 * (0.5 * 0.5 / N_SAMPLES as f64).sqrt();
         for i in 96..128 {
+            let p = bins[i] as f64 / N_SAMPLES as f64;
+            assert!((p - 0.5).abs() < margin, "random bit {}: {}", i, p);
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests_v4 {
+    use super::uuid4;
+
+    const N_SAMPLES: usize = 200_000;
+    thread_local!(static SAMPLES: Vec<String> = (0..N_SAMPLES).map(|_| uuid4().into()).collect());
+
+    /// Generates canonical string
+    #[test]
+    fn generates_canonical_string() {
+        let pattern = r"^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$";
+        let re = regex::Regex::new(pattern).unwrap();
+        SAMPLES.with(|samples| {
+            for e in samples {
+                assert!(re.is_match(e));
+            }
+        });
+    }
+
+    /// Generates 200k identifiers without collision
+    #[test]
+    fn generates_200k_identifiers_without_collision() {
+        use std::collections::HashSet;
+        SAMPLES.with(|samples| {
+            let s: HashSet<&String> = samples.iter().collect();
+            assert_eq!(s.len(), N_SAMPLES);
+        });
+    }
+
+    /// Sets constant bits and random bits properly
+    #[test]
+    fn sets_constant_bits_and_random_bits_properly() {
+        // count '1' of each bit
+        let bins = SAMPLES.with(|samples| {
+            let mut bins = [0u32; 128];
+            for e in samples {
+                let mut it = bins.iter_mut().rev();
+                for c in e.chars().rev() {
+                    if let Some(mut num) = c.to_digit(16) {
+                        for _ in 0..4 {
+                            *it.next().unwrap() += num & 1;
+                            num >>= 1;
+                        }
+                    }
+                }
+            }
+            bins
+        });
+
+        // test if constant bits are all set to 1 or 0
+        let n = N_SAMPLES as u32;
+        assert_eq!(bins[48], 0, "version bit 48");
+        assert_eq!(bins[49], n, "version bit 49");
+        assert_eq!(bins[50], 0, "version bit 50");
+        assert_eq!(bins[51], 0, "version bit 51");
+        assert_eq!(bins[64], n, "variant bit 64");
+        assert_eq!(bins[65], 0, "variant bit 65");
+
+        // test if random bits are set to 1 at ~50% probability
+        // set margin based on binom dist 99.999% confidence interval
+        let margin = 4.417173 * (0.5 * 0.5 / N_SAMPLES as f64).sqrt();
+        for i in (0..48).chain(52..64).chain(66..128) {
             let p = bins[i] as f64 / N_SAMPLES as f64;
             assert!((p - 0.5).abs() < margin, "random bit {}: {}", i, p);
         }
