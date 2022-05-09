@@ -1,7 +1,11 @@
 #[cfg(not(feature = "std"))]
 use core as std;
 
-use std::{fmt, str::from_utf8_unchecked};
+use std::fmt;
+use std::str::{from_utf8_unchecked, FromStr};
+
+#[cfg(feature = "std")]
+use std::error::Error;
 
 /// Represents a Universally Unique IDentifier.
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default)]
@@ -47,14 +51,16 @@ impl Uuid {
 
     /// Writes the 8-4-4-4-12 hexadecimal string representation to `buf` as an ASCII byte array.
     ///
-    /// This method primarily serves in the `no_std` environment where `String` is not readily
-    /// available. Use [`Display`](std::fmt::Display) trait and
-    /// [`to_string()`](std::string::ToString::to_string) method where available to get the
+    /// This method primarily serves in the `no_std` environment where [`String`] is not readily
+    /// available. Use the [`Display`] trait and [`to_string()`] method where available to get the
     /// 8-4-4-4-12 canonical hexadecimal string representation.
+    ///
+    /// [`Display`]: std::fmt::Display
+    /// [`to_string()`]: std::string::ToString::to_string
     ///
     /// # Panics
     ///
-    /// This method panics if the length of `buf` is smaller than 36.
+    /// Panics if the length of `buf` is smaller than 36.
     pub fn write_utf8(&self, buf: &mut [u8]) {
         const DIGITS: &[u8; 16] = b"0123456789abcdef";
         let mut buf_iter = buf[0..36].iter_mut();
@@ -75,6 +81,29 @@ impl fmt::Display for Uuid {
         let mut buffer = [0u8; 36];
         self.write_utf8(&mut buffer);
         f.write_str(unsafe { from_utf8_unchecked(&buffer) })
+    }
+}
+
+impl FromStr for Uuid {
+    type Err = ParseError;
+
+    /// Creates an object from the 8-4-4-4-12 hexadecimal string representation.
+    fn from_str(src: &str) -> Result<Self, Self::Err> {
+        if src.len() != 36 {
+            return Err(ParseError {});
+        }
+
+        let mut dst = [0u8; 16];
+        let mut iter = src.chars();
+        for (i, e) in dst.iter_mut().enumerate() {
+            let hi = iter.next().unwrap().to_digit(16).ok_or(ParseError {})? as u8;
+            let lo = iter.next().unwrap().to_digit(16).ok_or(ParseError {})? as u8;
+            *e = (hi << 4) | lo;
+            if (i == 3 || i == 5 || i == 7 || i == 9) && iter.next().unwrap() != '-' {
+                return Err(ParseError {});
+            }
+        }
+        Ok(Self(dst))
     }
 }
 
@@ -103,6 +132,15 @@ impl From<Uuid> for String {
     }
 }
 
+#[cfg(feature = "std")]
+impl TryFrom<String> for Uuid {
+    type Error = ParseError;
+
+    fn try_from(src: String) -> Result<Self, Self::Error> {
+        Self::from_str(&src)
+    }
+}
+
 #[cfg(feature = "uuid")]
 impl From<Uuid> for uuid::Uuid {
     fn from(src: Uuid) -> Self {
@@ -116,6 +154,19 @@ impl From<uuid::Uuid> for Uuid {
         Self(src.into_bytes())
     }
 }
+
+/// Error parsing an invalid string representation of UUID.
+#[derive(Clone, Eq, PartialEq, Hash, Debug)]
+pub struct ParseError {}
+
+impl fmt::Display for ParseError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "invalid string representation")
+    }
+}
+
+#[cfg(feature = "std")]
+impl Error for ParseError {}
 
 #[cfg(test)]
 mod tests {
@@ -144,19 +195,46 @@ mod tests {
         ]
     }
 
-    /// Encodes prepared cases correctly
+    /// Encodes and decodes prepared cases correctly
     #[test]
-    fn encodes_prepared_cases_correctly() {
+    fn encodes_and_decodes_prepared_cases_correctly() {
         let mut buf = [0u8; 36];
 
         for (fs, text) in prepare_cases() {
             let from_fields = Uuid::from_fields_v7(fs.0, fs.1, fs.2);
+            assert_eq!(from_fields, text.parse::<Uuid>().unwrap());
+            assert_eq!(from_fields, text.to_uppercase().parse::<Uuid>().unwrap());
             from_fields.write_utf8(&mut buf);
             assert_eq!(&from_utf8(&buf).unwrap(), text);
             #[cfg(feature = "std")]
             assert_eq!(&from_fields.to_string(), text);
             #[cfg(feature = "uuid")]
             assert_eq!(&uuid::Uuid::from(from_fields).to_string(), text);
+        }
+    }
+
+    /// Returns error to invalid string representation
+    #[test]
+    fn returns_error_to_invalid_string_representation() {
+        let cases = [
+            "",
+            " 0180a8f0-5b82-75b4-9fef-ecad657c30bb",
+            "0180a8f0-5b84-7438-ab50-f0626f78002b ",
+            " 0180a8f0-5b84-7438-ab50-f063bd5331af ",
+            "+0180a8f0-5b84-7438-ab50-f06405d35edb",
+            "-0180a8f0-5b84-7438-ab50-f06508df4c2d",
+            "+180a8f0-5b84-7438-ab50-f066aa10a367",
+            "-180a8f0-5b84-7438-ab50-f067cdce1d69",
+            "0180a8f05b847438ab50f068decfbfd7",
+            "0180a8f0-5b847438-ab50-f06991838802",
+            "{0180a8f0-5b84-7438-ab50-f06ac2e5e082}",
+            "0180a8f0-5b84-74 8-ab50-f06bed27bdc7",
+            "0180a8g0-5b84-7438-ab50-f06c91175b8a",
+            "0180a8f0-5b84-7438-ab50_f06d3ea24429",
+        ];
+
+        for e in cases {
+            assert!(e.parse::<Uuid>().is_err());
         }
     }
 
@@ -180,9 +258,24 @@ mod tests {
 
     #[test]
     fn has_symmetric_converters() {
+        let mut buf = [0u8; 36];
         for (fs, _) in prepare_cases() {
             let e = Uuid::from_fields_v7(fs.0, fs.1, fs.2);
             assert_eq!(Uuid::from(<[u8; 16]>::from(e)), e);
+            e.write_utf8(&mut buf);
+            assert_eq!(from_utf8(&buf).unwrap().parse::<Uuid>().unwrap(), e);
+            assert_eq!(
+                from_utf8(&buf)
+                    .unwrap()
+                    .to_uppercase()
+                    .parse::<Uuid>()
+                    .unwrap(),
+                e
+            );
+            #[cfg(feature = "std")]
+            assert_eq!(Uuid::try_from(e.to_string()).unwrap(), e);
+            #[cfg(feature = "std")]
+            assert_eq!(Uuid::try_from(e.to_string().to_uppercase()).unwrap(), e);
             #[cfg(feature = "uuid")]
             assert_eq!(Uuid::from(<uuid::Uuid>::from(e)), e);
         }

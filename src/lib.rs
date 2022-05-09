@@ -94,7 +94,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 mod id;
-pub use id::Uuid;
+pub use id::{ParseError, Uuid};
 
 pub mod gen7;
 
