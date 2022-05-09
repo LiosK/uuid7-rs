@@ -125,6 +125,18 @@ impl AsRef<[u8]> for Uuid {
     }
 }
 
+impl From<Uuid> for u128 {
+    fn from(src: Uuid) -> Self {
+        Self::from_be_bytes(src.0)
+    }
+}
+
+impl From<u128> for Uuid {
+    fn from(src: u128) -> Self {
+        Self(src.to_be_bytes())
+    }
+}
+
 #[cfg(feature = "std")]
 impl From<Uuid> for String {
     fn from(src: Uuid) -> Self {
@@ -256,12 +268,14 @@ mod tests {
         );
     }
 
+    /// Has symmetric converters
     #[test]
     fn has_symmetric_converters() {
         let mut buf = [0u8; 36];
         for (fs, _) in prepare_cases() {
             let e = Uuid::from_fields_v7(fs.0, fs.1, fs.2);
             assert_eq!(Uuid::from(<[u8; 16]>::from(e)), e);
+            assert_eq!(Uuid::from(u128::from(e)), e);
             e.write_utf8(&mut buf);
             assert_eq!(from_utf8(&buf).unwrap().parse::<Uuid>().unwrap(), e);
             assert_eq!(
@@ -278,6 +292,11 @@ mod tests {
             assert_eq!(Uuid::try_from(e.to_string().to_uppercase()).unwrap(), e);
             #[cfg(feature = "uuid")]
             assert_eq!(Uuid::from(<uuid::Uuid>::from(e)), e);
+
+            #[cfg(feature = "uuid")]
+            assert_eq!(uuid::Uuid::from(e).as_bytes(), &<[u8; 16]>::from(e));
+            #[cfg(feature = "uuid")]
+            assert_eq!(uuid::Uuid::from(e).as_u128(), u128::from(e));
         }
     }
 }
