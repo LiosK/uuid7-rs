@@ -180,6 +180,123 @@ impl fmt::Display for ParseError {
 #[cfg(feature = "std")]
 impl Error for ParseError {}
 
+#[cfg(feature = "serde")]
+mod serde_support {
+    use super::{fmt, from_utf8_unchecked, Uuid};
+    use serde::de::{Deserialize, Deserializer, Error, Visitor};
+    use serde::{Serialize, Serializer};
+
+    impl Serialize for Uuid {
+        fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+            if serializer.is_human_readable() {
+                let mut buffer = [0u8; 36];
+                self.write_utf8(&mut buffer);
+                serializer.serialize_str(unsafe { from_utf8_unchecked(&buffer) })
+            } else {
+                serializer.serialize_bytes(self.as_bytes())
+            }
+        }
+    }
+
+    impl<'de> Deserialize<'de> for Uuid {
+        fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+            if deserializer.is_human_readable() {
+                deserializer.deserialize_str(VisitorImpl)
+            } else {
+                deserializer.deserialize_bytes(VisitorImpl)
+            }
+        }
+    }
+
+    struct VisitorImpl;
+
+    impl<'de> Visitor<'de> for VisitorImpl {
+        type Value = Uuid;
+
+        fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+            write!(formatter, "a UUID representation")
+        }
+
+        fn visit_str<E: Error>(self, value: &str) -> Result<Self::Value, E> {
+            value.parse::<Self::Value>().map_err(Error::custom)
+        }
+
+        fn visit_bytes<E: Error>(self, value: &[u8]) -> Result<Self::Value, E> {
+            <[u8; 16]>::try_from(value)
+                .map(Self::Value::from)
+                .map_err(Error::custom)
+        }
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use super::Uuid;
+        use serde_test::{assert_tokens, Configure, Token};
+
+        /// Serializes and deserializes prepared cases correctly
+        #[test]
+        fn serializes_and_deserializes_prepared_cases_correctly() {
+            let cases = [
+                ("00000000-0000-0000-0000-000000000000", &[0u8; 16]),
+                (
+                    "0180ae59-078c-7b80-b113-2fe14a615fb3",
+                    &[
+                        1, 128, 174, 89, 7, 140, 123, 128, 177, 19, 47, 225, 74, 97, 95, 179,
+                    ],
+                ),
+                (
+                    "0180ae59-0790-7f6d-897d-79370b09dd07",
+                    &[
+                        1, 128, 174, 89, 7, 144, 127, 109, 137, 125, 121, 55, 11, 9, 221, 7,
+                    ],
+                ),
+                (
+                    "0180ae59-0790-7f6d-897d-7938e16176fc",
+                    &[
+                        1, 128, 174, 89, 7, 144, 127, 109, 137, 125, 121, 56, 225, 97, 118, 252,
+                    ],
+                ),
+                (
+                    "0180ae59-0790-7f6d-897d-7939dbb56111",
+                    &[
+                        1, 128, 174, 89, 7, 144, 127, 109, 137, 125, 121, 57, 219, 181, 97, 17,
+                    ],
+                ),
+                (
+                    "0180ae59-0790-7f6d-897d-793af4b611fb",
+                    &[
+                        1, 128, 174, 89, 7, 144, 127, 109, 137, 125, 121, 58, 244, 182, 17, 251,
+                    ],
+                ),
+                (
+                    "0180ae59-0790-7f6d-897d-793be80c6ca4",
+                    &[
+                        1, 128, 174, 89, 7, 144, 127, 109, 137, 125, 121, 59, 232, 12, 108, 164,
+                    ],
+                ),
+                (
+                    "0180ae59-0790-7f6d-897d-793c00a6b6d7",
+                    &[
+                        1, 128, 174, 89, 7, 144, 127, 109, 137, 125, 121, 60, 0, 166, 182, 215,
+                    ],
+                ),
+                (
+                    "0180ae59-0791-7e79-8804-02ce2b5bc8d2",
+                    &[
+                        1, 128, 174, 89, 7, 145, 126, 121, 136, 4, 2, 206, 43, 91, 200, 210,
+                    ],
+                ),
+            ];
+
+            for (text, bytes) in cases {
+                let e = text.parse::<Uuid>().unwrap();
+                assert_tokens(&e.readable(), &[Token::String(text)]);
+                assert_tokens(&e.compact(), &[Token::Bytes(bytes)]);
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::Uuid;
