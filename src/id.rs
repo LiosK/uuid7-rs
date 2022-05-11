@@ -89,21 +89,22 @@ impl FromStr for Uuid {
 
     /// Creates an object from the 8-4-4-4-12 hexadecimal string representation.
     fn from_str(src: &str) -> Result<Self, Self::Err> {
-        if src.len() != 36 {
-            return Err(ParseError {});
-        }
-
+        const ERR: ParseError = ParseError {};
         let mut dst = [0u8; 16];
         let mut iter = src.chars();
         for (i, e) in dst.iter_mut().enumerate() {
-            let hi = iter.next().unwrap().to_digit(16).ok_or(ParseError {})? as u8;
-            let lo = iter.next().unwrap().to_digit(16).ok_or(ParseError {})? as u8;
+            let hi = iter.next().ok_or(ERR)?.to_digit(16).ok_or(ERR)? as u8;
+            let lo = iter.next().ok_or(ERR)?.to_digit(16).ok_or(ERR)? as u8;
             *e = (hi << 4) | lo;
-            if (i == 3 || i == 5 || i == 7 || i == 9) && iter.next().unwrap() != '-' {
-                return Err(ParseError {});
+            if (i == 3 || i == 5 || i == 7 || i == 9) && iter.next().ok_or(ERR)? != '-' {
+                return Err(ERR);
             }
         }
-        Ok(Self(dst))
+        if iter.next().is_none() {
+            Ok(Self(dst))
+        } else {
+            Err(ERR)
+        }
     }
 }
 
@@ -373,16 +374,10 @@ mod tests {
         let mut buf = [0u8; 36];
 
         Uuid::NIL.write_utf8(&mut buf);
-        assert_eq!(
-            from_utf8(&buf).unwrap(),
-            "00000000-0000-0000-0000-000000000000"
-        );
+        assert_eq!(from_utf8(&buf), Ok("00000000-0000-0000-0000-000000000000"));
 
         Uuid::MAX.write_utf8(&mut buf);
-        assert_eq!(
-            from_utf8(&buf).unwrap(),
-            "ffffffff-ffff-ffff-ffff-ffffffffffff"
-        );
+        assert_eq!(from_utf8(&buf), Ok("ffffffff-ffff-ffff-ffff-ffffffffffff"));
     }
 
     /// Has symmetric converters
@@ -394,19 +389,15 @@ mod tests {
             assert_eq!(Uuid::from(<[u8; 16]>::from(e)), e);
             assert_eq!(Uuid::from(u128::from(e)), e);
             e.write_utf8(&mut buf);
-            assert_eq!(from_utf8(&buf).unwrap().parse::<Uuid>().unwrap(), e);
+            assert_eq!(from_utf8(&buf).unwrap().parse::<Uuid>(), Ok(e));
             assert_eq!(
-                from_utf8(&buf)
-                    .unwrap()
-                    .to_uppercase()
-                    .parse::<Uuid>()
-                    .unwrap(),
-                e
+                from_utf8(&buf).unwrap().to_uppercase().parse::<Uuid>(),
+                Ok(e)
             );
             #[cfg(feature = "std")]
-            assert_eq!(Uuid::try_from(e.to_string()).unwrap(), e);
+            assert_eq!(Uuid::try_from(e.to_string()), Ok(e));
             #[cfg(feature = "std")]
-            assert_eq!(Uuid::try_from(e.to_string().to_uppercase()).unwrap(), e);
+            assert_eq!(Uuid::try_from(e.to_string().to_uppercase()), Ok(e));
             #[cfg(feature = "uuid")]
             assert_eq!(Uuid::from(<uuid::Uuid>::from(e)), e);
 
