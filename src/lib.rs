@@ -61,6 +61,7 @@
 //!
 //! Optional features:
 //!
+//! - `serde` enables the serialization and deserialization of [`Uuid`] objects.
 //! - `uuid` (together with `std`) enables the `new_v7()` function that returns the
 //!   popular [uuid](https://crates.io/crates/uuid) crate's `Uuid` objects.
 //!
@@ -94,7 +95,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 mod id;
-pub use id::Uuid;
+pub use id::{ParseError, Uuid};
 
 pub mod gen7;
 

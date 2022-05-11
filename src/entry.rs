@@ -51,7 +51,7 @@ pub fn uuid4() -> Uuid {
 mod tests_v7 {
     use super::uuid7;
 
-    const N_SAMPLES: usize = 200_000;
+    const N_SAMPLES: usize = 100_000;
     thread_local!(static SAMPLES: Vec<String> = (0..N_SAMPLES).map(|_| uuid7().into()).collect());
 
     /// Generates canonical string
@@ -66,9 +66,9 @@ mod tests_v7 {
         });
     }
 
-    /// Generates 200k identifiers without collision
+    /// Generates 100k identifiers without collision
     #[test]
-    fn generates_200k_identifiers_without_collision() {
+    fn generates_100k_identifiers_without_collision() {
         use std::collections::HashSet;
         SAMPLES.with(|samples| {
             let s: HashSet<&String> = samples.iter().collect();
@@ -165,7 +165,7 @@ mod tests_v7 {
 mod tests_v4 {
     use super::uuid4;
 
-    const N_SAMPLES: usize = 200_000;
+    const N_SAMPLES: usize = 100_000;
     thread_local!(static SAMPLES: Vec<String> = (0..N_SAMPLES).map(|_| uuid4().into()).collect());
 
     /// Generates canonical string
@@ -180,9 +180,9 @@ mod tests_v4 {
         });
     }
 
-    /// Generates 200k identifiers without collision
+    /// Generates 100k identifiers without collision
     #[test]
-    fn generates_200k_identifiers_without_collision() {
+    fn generates_100k_identifiers_without_collision() {
         use std::collections::HashSet;
         SAMPLES.with(|samples| {
             let s: HashSet<&String> = samples.iter().collect();
