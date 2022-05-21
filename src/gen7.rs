@@ -156,13 +156,13 @@ mod tests {
         let mut g: Generator<ThreadRng> = Default::default();
         let (mut prev, status) = g.generate_core(ts);
         assert_eq!(status, Status::NewTimestamp);
-        assert_eq!(prev.as_bytes()[0..6], ts.to_be_bytes()[2..]);
+        assert_eq!(prev.as_bytes()[..6], ts.to_be_bytes()[2..]);
         for i in 0..100_000 as u64 {
             let (curr, status) = g.generate_core(ts - i.min(4_000));
             assert!(status == Status::CounterInc || status == Status::TimestampInc);
             assert!(prev < curr);
             prev = curr;
         }
-        assert!(prev.as_bytes()[0..6] >= ts.to_be_bytes()[2..]);
+        assert!(prev.as_bytes()[..6] >= ts.to_be_bytes()[2..]);
     }
 }

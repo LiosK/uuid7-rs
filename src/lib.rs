@@ -101,9 +101,7 @@ pub mod gen7;
 
 mod entry;
 #[cfg(feature = "std")]
-pub use entry::uuid4;
-#[cfg(feature = "std")]
-pub use entry::uuid7;
+pub use entry::{uuid4, uuid7};
 
 /// Generates a UUIDv7 and returns it as an instance of [`uuid::Uuid`].
 #[cfg(all(feature = "std", feature = "uuid"))]
