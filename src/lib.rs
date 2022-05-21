@@ -93,6 +93,7 @@
 //! ```
 
 #![cfg_attr(not(feature = "std"), no_std)]
+#![cfg_attr(docsrs, feature(doc_cfg))]
 
 mod id;
 pub use id::{ParseError, Uuid};
@@ -105,6 +106,7 @@ pub use entry::{uuid4, uuid7};
 
 /// Generates a UUIDv7 and returns it as an instance of [`uuid::Uuid`].
 #[cfg(all(feature = "std", feature = "uuid"))]
+#[cfg_attr(docsrs, doc(cfg(all(feature = "std", feature = "uuid"))))]
 pub fn new_v7() -> uuid::Uuid {
     uuid7().into()
 }

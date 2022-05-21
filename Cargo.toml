@@ -21,3 +21,8 @@ serde_test = "1.0"
 [features]
 default = ["std"]
 std = ["rand/std", "rand/std_rng"]
+
+[package.metadata.docs.rs]
+# RUSTDOCFLAGS="--cfg docsrs" cargo +nightly doc --all-features --open
+all-features = true
+rustc-args = ["--cfg", "docsrs"]

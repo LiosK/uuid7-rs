@@ -60,6 +60,7 @@ impl<R: RngCore> Generator<R> {
 
     /// Generates a new UUIDv7 object.
     #[cfg(feature = "std")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
     pub fn generate(&mut self) -> Uuid {
         self.generate_core(
             SystemTime::now()

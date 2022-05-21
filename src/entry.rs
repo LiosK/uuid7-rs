@@ -26,6 +26,7 @@ thread_local! {
 ///
 /// let uuid_string: String = uuid7().to_string();
 /// ```
+#[cfg_attr(docsrs, doc(cfg(feature = "std")))]
 pub fn uuid7() -> Uuid {
     DEFAULT_GENERATOR.with(|g| g.borrow_mut().generate())
 }
@@ -40,6 +41,7 @@ pub fn uuid7() -> Uuid {
 /// let uuid = uuid4();
 /// println!("{}", uuid); // e.g. "2ca4b2ce-6c13-40d4-bccf-37d222820f6f"
 /// ```
+#[cfg_attr(docsrs, doc(cfg(feature = "std")))]
 pub fn uuid4() -> Uuid {
     let mut bytes: [u8; 16] = random();
     bytes[6] = 0x40 | (bytes[6] >> 4);

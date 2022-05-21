@@ -150,6 +150,7 @@ impl fmt::Display for ParseError {
 }
 
 #[cfg(feature = "std")]
+#[cfg_attr(docsrs, doc(cfg(feature = "std")))]
 mod std_ext {
     use super::{ParseError, Uuid};
     use std::error::Error;
@@ -172,6 +173,7 @@ mod std_ext {
 }
 
 #[cfg(feature = "uuid")]
+#[cfg_attr(docsrs, doc(cfg(feature = "uuid")))]
 mod uuid_support {
     use super::Uuid;
 
@@ -189,6 +191,7 @@ mod uuid_support {
 }
 
 #[cfg(feature = "serde")]
+#[cfg_attr(docsrs, doc(cfg(feature = "serde")))]
 mod serde_support {
     use super::{fmt, from_utf8_unchecked, Uuid};
     use serde::de::{Deserialize, Deserializer, Error, Visitor};
