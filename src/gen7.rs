@@ -64,7 +64,7 @@ impl<R: RngCore> Generator<R> {
         self.generate_core(
             SystemTime::now()
                 .duration_since(UNIX_EPOCH)
-                .expect("clock may have gone backwards")
+                .expect("clock may have gone backward")
                 .as_millis() as u64,
         )
         .0
@@ -89,7 +89,7 @@ impl<R: RngCore> Generator<R> {
     ///
     /// let (second, status) = g.generate_core(ts);
     /// if status == Status::ClockRollback {
-    ///     panic!("clock moved backwards; monotonic order of UUIDs broken");
+    ///     panic!("clock moved backward; monotonic order of UUIDs broken");
     /// } else {
     ///     assert!(second.as_bytes()[0..6] >= ts.to_be_bytes()[2..]);
     /// }
@@ -110,7 +110,7 @@ impl<R: RngCore> Generator<R> {
                 status = Status::TimestampInc;
             }
         } else {
-            // reset state if clock moves back more than ten seconds
+            // reset state if clock moves back by ten seconds or more
             self.timestamp = unix_ts_ms;
             self.counter = self.rng.next_u64() & MAX_COUNTER;
             status = Status::ClockRollback;
@@ -138,8 +138,8 @@ pub enum Status {
     /// Returned when `unix_ts_ms` was incremented because the counter was incremented and reached
     /// its maximum value.
     TimestampInc,
-    /// Returned when the monotonic order of UUIDs was broken because `unix_ts_ms` was more than
-    /// ten seconds less than the previous one.
+    /// Returned when the monotonic order of UUIDs was broken because `unix_ts_ms` was less than
+    /// the previous one by ten seconds or more.
     ClockRollback,
 }
 

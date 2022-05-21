@@ -93,7 +93,7 @@ mod tests_v7 {
         for _ in 0..10_000 {
             let ts_now = (SystemTime::now()
                 .duration_since(UNIX_EPOCH)
-                .expect("clock may have gone backwards")
+                .expect("clock may have gone backward")
                 .as_millis()) as i64;
             let mut timestamp = 0i64;
             for e in uuid7().as_bytes().iter().take(6) {

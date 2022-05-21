@@ -4,7 +4,7 @@ version = "0.2.1"
 authors = ["LiosK <contact@mail.liosk.net>"]
 license = "Apache-2.0"
 edition = "2021"
-description = "An experimental implementation of the proposed UUID Version 7"
+description = "A Rust implementation of the proposed UUID Version 7"
 repository = "https://github.com/LiosK/uuid7-rs"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
