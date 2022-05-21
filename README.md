@@ -3,7 +3,7 @@
 [![Crates.io](https://img.shields.io/crates/v/uuid7)](https://crates.io/crates/uuid7)
 [![License](https://img.shields.io/crates/l/uuid7)](https://github.com/LiosK/uuid7-rs/blob/main/LICENSE)
 
-An experimental implementation of the proposed UUID Version 7
+A Rust implementation of the proposed UUID Version 7
 
 ```rust
 use uuid7::uuid7;
@@ -48,16 +48,16 @@ Where:
 - The remaining 32 `rand` bits are filled with a cryptographically strong random
   number.
 
-In the very rare circumstances where the 42-bit `counter` field reaches its
-maximum value and can no more be incremented within the same timestamp, this
-library increments the `unix_ts_ms`; therefore, the `unix_ts_ms` may have a
-larger value than that of the real-time clock. This library goes on with such
-larger `unix_ts_ms` values caused by counter overflows and system clock
-rollbacks as long as the difference from the system clock is small enough. If
-the system clock moves back more than ten seconds, this library resets the
-generator state and thus breaks the monotonic order of generated identifiers.
+In the rare circumstances where the 42-bit `counter` field reaches its maximum
+value and can no more be incremented within the same timestamp, this library
+increments the `unix_ts_ms`; therefore, the `unix_ts_ms` may have a larger value
+than that of the real-time clock. This library goes on with such larger
+`unix_ts_ms` values caused by counter overflows and system clock rollbacks as
+long as the difference from the system clock is small enough. If the system
+clock moves back by ten seconds or more, this library resets the generator state
+and thus breaks the monotonic order of generated identifiers.
 
-## Features
+## Crate features
 
 Default features:
 
