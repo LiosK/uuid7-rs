@@ -23,6 +23,6 @@ default = ["std"]
 std = ["rand/std", "rand/std_rng"]
 
 [package.metadata.docs.rs]
-# RUSTDOCFLAGS="--cfg docsrs" cargo +nightly doc --all-features --open
+# RUSTDOCFLAGS="--cfg docsrs" cargo +nightly doc --all-features --no-deps --open
 all-features = true
 rustdoc-args = ["--cfg", "docsrs"]
