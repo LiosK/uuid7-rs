@@ -95,8 +95,17 @@ impl<R: RngCore> Generator<R> {
     ///     assert!(second.as_bytes()[0..6] >= ts.to_be_bytes()[2..]);
     /// }
     /// ```
+    ///
+    /// # Panics
+    ///
+    /// Panics if the argument is not a 48-bit positive integer.
     pub fn generate_core(&mut self, unix_ts_ms: u64) -> (Uuid, Status) {
         const MAX_COUNTER: u64 = (1 << 42) - 1;
+
+        if unix_ts_ms == 0 || unix_ts_ms >= 1 << 48 {
+            panic!("`unix_ts_ms` must be a 48-bit positive integer");
+        }
+
         let mut status = Status::NewTimestamp;
         if unix_ts_ms > self.timestamp {
             self.timestamp = unix_ts_ms;
