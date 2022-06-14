@@ -13,7 +13,8 @@ thread_local! {
 /// Generates a UUIDv7 object.
 ///
 /// This function employs a thread-local generator and guarantees the per-thread monotonic order of
-/// UUIDs generated within the same millisecond.
+/// UUIDs generated within the same millisecond. On Unix, this function resets the generator when
+/// the process ID changes (i.e. upon process forks) to prevent collisions across processes.
 ///
 /// # Examples
 ///
@@ -28,7 +29,13 @@ thread_local! {
 /// ```
 #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
 pub fn uuid7() -> Uuid {
-    DEFAULT_GENERATOR.with(|g| g.borrow_mut().generate())
+    DEFAULT_GENERATOR.with(|g| {
+        if unix_fork_safety::reseed_thread_rng_upon_pid_change() {
+            g.replace(Default::default());
+        }
+
+        g.borrow_mut().generate()
+    })
 }
 
 /// Generates a UUIDv4 object.
@@ -43,10 +50,45 @@ pub fn uuid7() -> Uuid {
 /// ```
 #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
 pub fn uuid4() -> Uuid {
+    unix_fork_safety::reseed_thread_rng_upon_pid_change();
     let mut bytes: [u8; 16] = random();
     bytes[6] = 0x40 | (bytes[6] >> 4);
     bytes[8] = 0x80 | (bytes[8] >> 2);
     Uuid::from(bytes)
+}
+
+#[cfg(unix)]
+mod unix_fork_safety {
+    use rand::random;
+    use std::cell::Cell;
+    use std::process;
+
+    thread_local! {
+        static PID: Cell<u32> = Cell::new(process::id());
+    }
+
+    /// Reseeds ThreadRng immediately when the process ID changes (i.e. upon process forks),
+    /// returning true if ThreadRng is reseeded or false otherwise.
+    pub fn reseed_thread_rng_upon_pid_change() -> bool {
+        PID.with(|last_pid| {
+            let pid = process::id();
+            if pid == last_pid.replace(pid) {
+                false
+            } else {
+                // As of rand 0.8.5, up to fifteen u32 values need to be consumed before reseeding;
+                // see rand::rngs::adapter::ReseedingRng docs for details
+                let _: [u32; 15] = random();
+                true
+            }
+        })
+    }
+}
+
+#[cfg(not(unix))]
+mod unix_fork_safety {
+    pub const fn reseed_thread_rng_upon_pid_change() -> bool {
+        false
+    }
 }
 
 #[cfg(test)]
