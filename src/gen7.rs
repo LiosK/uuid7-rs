@@ -50,10 +50,10 @@ pub struct Generator<R> {
 
 impl<R: RngCore> Generator<R> {
     /// Creates a generator instance.
-    pub fn new(rng: R) -> Self {
+    pub const fn new(rng: R) -> Self {
         Self {
-            timestamp: Default::default(),
-            counter: Default::default(),
+            timestamp: 0,
+            counter: 0,
             rng,
         }
     }
