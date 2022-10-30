@@ -1,10 +1,6 @@
 //! UUIDv7 generator-related types
 
 use crate::Uuid;
-use rand::RngCore;
-
-#[cfg(feature = "std")]
-use std::time::{SystemTime, UNIX_EPOCH};
 
 /// Represents a UUIDv7 generator that encapsulates a counter and guarantees the monotonic order of
 /// UUIDs generated within the same millisecond.
@@ -17,24 +13,24 @@ use std::time::{SystemTime, UNIX_EPOCH};
 /// # Examples
 ///
 /// ```rust
-/// use std::sync::{Arc, Mutex};
-/// use std::thread::{spawn, yield_now};
+/// use rand::rngs::OsRng;
+/// use std::{sync, thread};
 /// use uuid7::gen7::Generator;
 ///
-/// let g = Arc::new(Mutex::new(Generator::new(rand::rngs::OsRng)));
+/// let g = sync::Arc::new(sync::Mutex::new(Generator::new(OsRng)));
 /// let handle = {
-///     let g = Arc::clone(&g);
-///     spawn(move || {
+///     let g = sync::Arc::clone(&g);
+///     thread::spawn(move || {
 ///         for _ in 0..8 {
 ///             println!("{} by child", g.lock().unwrap().generate());
-///             yield_now();
+///             thread::yield_now();
 ///         }
 ///     })
 /// };
 ///
 /// for _ in 0..8 {
 ///     println!("{} by parent", g.lock().unwrap().generate());
-///     yield_now();
+///     thread::yield_now();
 /// }
 ///
 /// handle.join().unwrap();
@@ -48,7 +44,7 @@ pub struct Generator<R> {
     rng: R,
 }
 
-impl<R: RngCore> Generator<R> {
+impl<R: rand::RngCore> Generator<R> {
     /// Creates a generator instance.
     pub const fn new(rng: R) -> Self {
         Self {
@@ -62,9 +58,10 @@ impl<R: RngCore> Generator<R> {
     #[cfg(feature = "std")]
     #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
     pub fn generate(&mut self) -> Uuid {
+        use std::time;
         self.generate_core(
-            SystemTime::now()
-                .duration_since(UNIX_EPOCH)
+            time::SystemTime::now()
+                .duration_since(time::UNIX_EPOCH)
                 .expect("clock may have gone backward")
                 .as_millis() as u64,
         )

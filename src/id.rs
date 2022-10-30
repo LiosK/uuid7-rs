@@ -1,8 +1,7 @@
 #[cfg(not(feature = "std"))]
 use core as std;
 
-use std::fmt;
-use std::str::{from_utf8_unchecked, FromStr};
+use std::{fmt, str};
 
 /// Represents a Universally Unique IDentifier.
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default)]
@@ -81,11 +80,11 @@ impl fmt::Display for Uuid {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut buffer = [0u8; 36];
         self.write_utf8(&mut buffer);
-        f.write_str(unsafe { from_utf8_unchecked(&buffer) })
+        f.write_str(unsafe { str::from_utf8_unchecked(&buffer) })
     }
 }
 
-impl FromStr for Uuid {
+impl str::FromStr for Uuid {
     type Err = ParseError;
 
     /// Creates an object from the 8-4-4-4-12 hexadecimal string representation.
@@ -193,23 +192,22 @@ mod uuid_support {
 #[cfg(feature = "serde")]
 #[cfg_attr(docsrs, doc(cfg(feature = "serde")))]
 mod serde_support {
-    use super::{fmt, from_utf8_unchecked, Uuid};
-    use serde::de::{Deserialize, Deserializer, Error, Visitor};
-    use serde::{Serialize, Serializer};
+    use super::{fmt, str, Uuid};
+    use serde::{de, Deserializer, Serializer};
 
-    impl Serialize for Uuid {
+    impl serde::Serialize for Uuid {
         fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
             if serializer.is_human_readable() {
                 let mut buffer = [0u8; 36];
                 self.write_utf8(&mut buffer);
-                serializer.serialize_str(unsafe { from_utf8_unchecked(&buffer) })
+                serializer.serialize_str(unsafe { str::from_utf8_unchecked(&buffer) })
             } else {
                 serializer.serialize_bytes(self.as_bytes())
             }
         }
     }
 
-    impl<'de> Deserialize<'de> for Uuid {
+    impl<'de> serde::Deserialize<'de> for Uuid {
         fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
             if deserializer.is_human_readable() {
                 deserializer.deserialize_str(VisitorImpl)
@@ -221,21 +219,21 @@ mod serde_support {
 
     struct VisitorImpl;
 
-    impl<'de> Visitor<'de> for VisitorImpl {
+    impl<'de> de::Visitor<'de> for VisitorImpl {
         type Value = Uuid;
 
         fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
             write!(formatter, "a UUID representation")
         }
 
-        fn visit_str<E: Error>(self, value: &str) -> Result<Self::Value, E> {
-            value.parse::<Self::Value>().map_err(Error::custom)
+        fn visit_str<E: de::Error>(self, value: &str) -> Result<Self::Value, E> {
+            value.parse::<Self::Value>().map_err(de::Error::custom)
         }
 
-        fn visit_bytes<E: Error>(self, value: &[u8]) -> Result<Self::Value, E> {
+        fn visit_bytes<E: de::Error>(self, value: &[u8]) -> Result<Self::Value, E> {
             <[u8; 16]>::try_from(value)
                 .map(Self::Value::from)
-                .map_err(Error::custom)
+                .map_err(de::Error::custom)
         }
     }
 
@@ -311,7 +309,7 @@ mod serde_support {
 #[cfg(test)]
 mod tests {
     use super::Uuid;
-    use core::str::from_utf8;
+    use core::str;
 
     /// Returns a collection of prepared cases
     fn prepare_cases() -> &'static [((u64, u16, u64), &'static str)] {
@@ -345,7 +343,7 @@ mod tests {
             assert_eq!(Ok(from_fields), text.parse());
             assert_eq!(Ok(from_fields), text.to_uppercase().parse());
             from_fields.write_utf8(&mut buf);
-            assert_eq!(&from_utf8(&buf).unwrap(), text);
+            assert_eq!(&str::from_utf8(&buf).unwrap(), text);
             #[cfg(feature = "std")]
             assert_eq!(&from_fields.to_string(), text);
             #[cfg(all(feature = "std", feature = "uuid"))]
@@ -384,10 +382,16 @@ mod tests {
         let mut buf = [0u8; 36];
 
         Uuid::NIL.write_utf8(&mut buf);
-        assert_eq!(from_utf8(&buf), Ok("00000000-0000-0000-0000-000000000000"));
+        assert_eq!(
+            str::from_utf8(&buf),
+            Ok("00000000-0000-0000-0000-000000000000")
+        );
 
         Uuid::MAX.write_utf8(&mut buf);
-        assert_eq!(from_utf8(&buf), Ok("ffffffff-ffff-ffff-ffff-ffffffffffff"));
+        assert_eq!(
+            str::from_utf8(&buf),
+            Ok("ffffffff-ffff-ffff-ffff-ffffffffffff")
+        );
     }
 
     /// Has symmetric converters
@@ -399,8 +403,8 @@ mod tests {
             assert_eq!(Uuid::from(<[u8; 16]>::from(e)), e);
             assert_eq!(Uuid::from(u128::from(e)), e);
             e.write_utf8(&mut buf);
-            assert_eq!(from_utf8(&buf).unwrap().parse(), Ok(e));
-            assert_eq!(from_utf8(&buf).unwrap().to_uppercase().parse(), Ok(e));
+            assert_eq!(str::from_utf8(&buf).unwrap().parse(), Ok(e));
+            assert_eq!(str::from_utf8(&buf).unwrap().to_uppercase().parse(), Ok(e));
             #[cfg(feature = "std")]
             assert_eq!(Uuid::try_from(e.to_string()), Ok(e));
             #[cfg(feature = "std")]
