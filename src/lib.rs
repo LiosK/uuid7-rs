@@ -10,7 +10,7 @@
 //! let uuid_string: String = uuid7().to_string();
 //! ```
 //!
-//! See [draft-peabody-dispatch-new-uuid-format-04](https://www.ietf.org/archive/id/draft-peabody-dispatch-new-uuid-format-04.html).
+//! See [draft-ietf-uuidrev-rfc4122bis-00](https://www.ietf.org/archive/id/draft-ietf-uuidrev-rfc4122bis-00.html).
 //!
 //! # Field and bit layout
 //!
