@@ -1,6 +1,6 @@
 [package]
 name = "uuid7"
-version = "0.2.6"
+version = "0.2.7"
 authors = ["LiosK <contact@mail.liosk.net>"]
 license = "Apache-2.0"
 edition = "2021"

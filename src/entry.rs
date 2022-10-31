@@ -3,7 +3,7 @@
 #![cfg(feature = "std")]
 
 use crate::{gen7::Generator, Uuid};
-use rand::{random, rngs::ThreadRng};
+use rand::rngs::ThreadRng;
 use std::cell::RefCell;
 
 thread_local! {
@@ -19,13 +19,11 @@ thread_local! {
 /// # Examples
 ///
 /// ```rust
-/// use uuid7::uuid7;
-///
-/// let uuid = uuid7();
+/// let uuid = uuid7::uuid7();
 /// println!("{}", uuid); // e.g. "01809424-3e59-7c05-9219-566f82fff672"
 /// println!("{:?}", uuid.as_bytes()); // as 16-byte big-endian array
 ///
-/// let uuid_string: String = uuid7().to_string();
+/// let uuid_string: String = uuid7::uuid7().to_string();
 /// ```
 #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
 pub fn uuid7() -> Uuid {
@@ -43,15 +41,13 @@ pub fn uuid7() -> Uuid {
 /// # Examples
 ///
 /// ```rust
-/// use uuid7::uuid4;
-///
-/// let uuid = uuid4();
+/// let uuid = uuid7::uuid4();
 /// println!("{}", uuid); // e.g. "2ca4b2ce-6c13-40d4-bccf-37d222820f6f"
 /// ```
 #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
 pub fn uuid4() -> Uuid {
     unix_fork_safety::reseed_thread_rng_upon_pid_change();
-    let mut bytes: [u8; 16] = random();
+    let mut bytes: [u8; 16] = rand::random();
     bytes[6] = 0x40 | (bytes[6] >> 4);
     bytes[8] = 0x80 | (bytes[8] >> 2);
     Uuid::from(bytes)
@@ -59,9 +55,7 @@ pub fn uuid4() -> Uuid {
 
 #[cfg(unix)]
 mod unix_fork_safety {
-    use rand::random;
-    use std::cell::Cell;
-    use std::process;
+    use std::{cell::Cell, process};
 
     thread_local! {
         static PID: Cell<u32> = Cell::new(process::id());
@@ -77,7 +71,7 @@ mod unix_fork_safety {
             } else {
                 // As of rand 0.8.5, up to fifteen u32 values need to be consumed before reseeding;
                 // see rand::rngs::adapter::ReseedingRng docs for details
-                let _: [u32; 15] = random();
+                let _: [u32; 15] = rand::random();
                 true
             }
         })
@@ -133,10 +127,10 @@ mod tests_v7 {
     /// Encodes up-to-date timestamp
     #[test]
     fn encodes_up_to_date_timestamp() {
-        use std::time::{SystemTime, UNIX_EPOCH};
+        use std::time;
         for _ in 0..10_000 {
-            let ts_now = (SystemTime::now()
-                .duration_since(UNIX_EPOCH)
+            let ts_now = (time::SystemTime::now()
+                .duration_since(time::UNIX_EPOCH)
                 .expect("clock may have gone backward")
                 .as_millis()) as i64;
             let mut timestamp = 0i64;
