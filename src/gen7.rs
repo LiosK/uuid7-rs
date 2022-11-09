@@ -137,16 +137,16 @@ impl<R: rand::RngCore> Generator<R> {
 /// Status code returned by [`Generator::generate_core`] method.
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
 pub enum Status {
-    /// Returned when `unix_ts_ms` was used because it was greater than the previous one.
+    /// Returned when `unix_ts_ms` given was used because it was greater than the previous one.
     NewTimestamp,
-    /// Returned when the counter was incremented because `unix_ts_ms` was no greater than the
-    /// previous one.
+    /// Returned when the counter was incremented because `unix_ts_ms` given was no greater than
+    /// the previous one.
     CounterInc,
     /// Returned when `unix_ts_ms` was incremented because the counter was incremented and reached
     /// its maximum value.
     TimestampInc,
-    /// Returned when the monotonic order of UUIDs was broken because `unix_ts_ms` was less than
-    /// the previous one by ten seconds or more.
+    /// Returned when the monotonic order of UUIDs was broken because `unix_ts_ms` given was less
+    /// than the previous one by ten seconds or more.
     ClockRollback,
 }
 
