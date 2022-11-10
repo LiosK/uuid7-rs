@@ -1,7 +1,7 @@
 #[cfg(not(feature = "std"))]
 use core as std;
 
-use std::{fmt, str};
+use std::{fmt, ops, str};
 
 /// Represents a Universally Unique IDentifier.
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default)]
@@ -45,24 +45,27 @@ impl Uuid {
         ])
     }
 
-    /// Writes the 8-4-4-4-12 hexadecimal string representation to `buffer` as an ASCII byte array.
+    /// Returns the 8-4-4-4-12 hexadecimal string representation stored in a stack-allocated
+    /// structure that can be dereferenced as `str`.
     ///
-    /// This method primarily serves in the `no_std` environment where [`String`] is not readily
-    /// available. Use the [`Display`] trait and [`to_string()`] method where available to get the
-    /// 8-4-4-4-12 canonical hexadecimal string representation.
+    /// This method is primarily for `no_std` environments where heap-allocated string types are
+    /// not readily available. Use the [`fmt::Display`] trait usually to get the 8-4-4-4-12
+    /// canonical hexadecimal string representation.
     ///
-    /// [`Display`]: std::fmt::Display
-    /// [`to_string()`]: std::string::ToString::to_string
+    /// # Examples
     ///
-    /// # Panics
+    /// ```rust
+    /// use uuid7::Uuid;
     ///
-    /// Panics if the length of `buffer` is smaller than 36.
-    pub fn write_utf8(&self, buffer: &mut [u8]) {
+    /// let x = "01809424-3e59-7c05-9219-566f82fff672".parse::<Uuid>()?;
+    /// assert_eq!(&x.encode() as &str, "01809424-3e59-7c05-9219-566f82fff672");
+    /// # Ok::<(), uuid7::ParseError>(())
+    /// ```
+    pub fn encode(&self) -> impl ops::Deref<Target = str> {
         const DIGITS: &[u8; 16] = b"0123456789abcdef";
-        let mut buf_iter = buffer
-            .get_mut(..36)
-            .expect("length of `buffer` must be at least 36")
-            .iter_mut();
+
+        let mut buffer = [0u8; 36];
+        let mut buf_iter = buffer.iter_mut();
         for i in 0..16 {
             let e = self.0[i] as usize;
             *buf_iter.next().unwrap() = DIGITS[e >> 4];
@@ -71,16 +74,15 @@ impl Uuid {
                 *buf_iter.next().unwrap() = b'-';
             }
         }
-        assert!(buffer[..36].is_ascii());
+        debug_assert!(buffer.is_ascii());
+        UuidStr(buffer)
     }
 }
 
 impl fmt::Display for Uuid {
     /// Returns the 8-4-4-4-12 canonical hexadecimal string representation.
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let mut buffer = [0u8; 36];
-        self.write_utf8(&mut buffer);
-        f.write_str(unsafe { str::from_utf8_unchecked(&buffer) })
+        f.write_str(&self.encode())
     }
 }
 
@@ -138,6 +140,19 @@ impl From<u128> for Uuid {
     }
 }
 
+/// Concrete return type of [`Uuid::encode()`] containing the stack-allocated 8-4-4-4-12 string
+/// representation.
+struct UuidStr([u8; 36]);
+
+impl ops::Deref for UuidStr {
+    type Target = str;
+
+    fn deref(&self) -> &Self::Target {
+        debug_assert!(self.0.is_ascii());
+        unsafe { str::from_utf8_unchecked(&self.0) }
+    }
+}
+
 /// Error parsing an invalid string representation of UUID.
 #[derive(Clone, Eq, PartialEq, Hash, Debug)]
 pub struct ParseError {}
@@ -152,7 +167,6 @@ impl fmt::Display for ParseError {
 #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
 mod std_ext {
     use super::{ParseError, Uuid};
-    use std::error::Error;
 
     impl From<Uuid> for String {
         fn from(src: Uuid) -> Self {
@@ -168,7 +182,7 @@ mod std_ext {
         }
     }
 
-    impl Error for ParseError {}
+    impl std::error::Error for ParseError {}
 }
 
 #[cfg(feature = "uuid")]
@@ -192,15 +206,13 @@ mod uuid_support {
 #[cfg(feature = "serde")]
 #[cfg_attr(docsrs, doc(cfg(feature = "serde")))]
 mod serde_support {
-    use super::{fmt, str, Uuid};
+    use super::{fmt, Uuid};
     use serde::{de, Deserializer, Serializer};
 
     impl serde::Serialize for Uuid {
         fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
             if serializer.is_human_readable() {
-                let mut buffer = [0u8; 36];
-                self.write_utf8(&mut buffer);
-                serializer.serialize_str(unsafe { str::from_utf8_unchecked(&buffer) })
+                serializer.serialize_str(&self.encode())
             } else {
                 serializer.serialize_bytes(self.as_bytes())
             }
@@ -309,7 +321,6 @@ mod serde_support {
 #[cfg(test)]
 mod tests {
     use super::Uuid;
-    use core::str;
 
     /// Returns a collection of prepared cases
     fn prepare_cases() -> &'static [((u64, u16, u64), &'static str)] {
@@ -336,14 +347,11 @@ mod tests {
     /// Encodes and decodes prepared cases correctly
     #[test]
     fn encodes_and_decodes_prepared_cases_correctly() {
-        let mut buf = [0u8; 36];
-
         for (fs, text) in prepare_cases() {
             let from_fields = Uuid::from_fields_v7(fs.0, fs.1, fs.2);
             assert_eq!(Ok(from_fields), text.parse());
             assert_eq!(Ok(from_fields), text.to_uppercase().parse());
-            from_fields.write_utf8(&mut buf);
-            assert_eq!(&str::from_utf8(&buf).unwrap(), text);
+            assert_eq!(&from_fields.encode() as &str, *text);
             #[cfg(feature = "std")]
             assert_eq!(&from_fields.to_string(), text);
             #[cfg(all(feature = "std", feature = "uuid"))]
@@ -379,32 +387,26 @@ mod tests {
     /// Returns Nil and Max UUIDs
     #[test]
     fn returns_nil_and_max_uuids() {
-        let mut buf = [0u8; 36];
-
-        Uuid::NIL.write_utf8(&mut buf);
         assert_eq!(
-            str::from_utf8(&buf),
-            Ok("00000000-0000-0000-0000-000000000000")
+            &Uuid::NIL.encode() as &str,
+            "00000000-0000-0000-0000-000000000000"
         );
 
-        Uuid::MAX.write_utf8(&mut buf);
         assert_eq!(
-            str::from_utf8(&buf),
-            Ok("ffffffff-ffff-ffff-ffff-ffffffffffff")
+            &Uuid::MAX.encode() as &str,
+            "ffffffff-ffff-ffff-ffff-ffffffffffff"
         );
     }
 
     /// Has symmetric converters
     #[test]
     fn has_symmetric_converters() {
-        let mut buf = [0u8; 36];
         for (fs, _) in prepare_cases() {
             let e = Uuid::from_fields_v7(fs.0, fs.1, fs.2);
             assert_eq!(Uuid::from(<[u8; 16]>::from(e)), e);
             assert_eq!(Uuid::from(u128::from(e)), e);
-            e.write_utf8(&mut buf);
-            assert_eq!(str::from_utf8(&buf).unwrap().parse(), Ok(e));
-            assert_eq!(str::from_utf8(&buf).unwrap().to_uppercase().parse(), Ok(e));
+            assert_eq!(e.encode().parse(), Ok(e));
+            assert_eq!(e.encode().to_uppercase().parse(), Ok(e));
             #[cfg(feature = "std")]
             assert_eq!(Uuid::try_from(e.to_string()), Ok(e));
             #[cfg(feature = "std")]
