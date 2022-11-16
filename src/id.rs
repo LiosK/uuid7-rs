@@ -15,7 +15,7 @@ impl Uuid {
     pub const MAX: Self = Self([0xff; 16]);
 
     /// Returns a reference to the underlying byte array.
-    pub const fn as_bytes(&self) -> &[u8] {
+    pub const fn as_bytes(&self) -> &[u8; 16] {
         &self.0
     }
 
@@ -46,7 +46,7 @@ impl Uuid {
     }
 
     /// Returns the 8-4-4-4-12 hexadecimal string representation stored in a stack-allocated
-    /// structure that can be dereferenced as `str`.
+    /// structure that can be dereferenced as `str` and [`Display`](fmt::Display)ed.
     ///
     /// This method is primarily for `no_std` environments where heap-allocated string types are
     /// not readily available. Use the [`fmt::Display`] trait usually to get the 8-4-4-4-12
@@ -58,10 +58,12 @@ impl Uuid {
     /// use uuid7::Uuid;
     ///
     /// let x = "01809424-3e59-7c05-9219-566f82fff672".parse::<Uuid>()?;
-    /// assert_eq!(&x.encode() as &str, "01809424-3e59-7c05-9219-566f82fff672");
+    /// let y = x.encode();
+    /// assert_eq!(&y as &str, "01809424-3e59-7c05-9219-566f82fff672");
+    /// assert_eq!(format!("{}", y), "01809424-3e59-7c05-9219-566f82fff672");
     /// # Ok::<(), uuid7::ParseError>(())
     /// ```
-    pub fn encode(&self) -> impl ops::Deref<Target = str> {
+    pub fn encode(&self) -> impl ops::Deref<Target = str> + fmt::Display {
         const DIGITS: &[u8; 16] = b"0123456789abcdef";
 
         let mut buffer = [0u8; 36];
@@ -150,6 +152,12 @@ impl ops::Deref for UuidStr {
     fn deref(&self) -> &Self::Target {
         debug_assert!(self.0.is_ascii());
         unsafe { str::from_utf8_unchecked(&self.0) }
+    }
+}
+
+impl fmt::Display for UuidStr {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self)
     }
 }
 
@@ -354,6 +362,8 @@ mod tests {
             assert_eq!(&from_fields.encode() as &str, *text);
             #[cfg(feature = "std")]
             assert_eq!(&from_fields.to_string(), text);
+            #[cfg(feature = "std")]
+            assert_eq!(&from_fields.encode().to_string(), text);
             #[cfg(all(feature = "std", feature = "uuid"))]
             assert_eq!(&uuid::Uuid::from(from_fields).to_string(), text);
         }
