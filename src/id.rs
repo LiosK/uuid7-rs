@@ -260,7 +260,7 @@ mod serde_support {
     #[cfg(test)]
     mod tests {
         use super::Uuid;
-        use serde_test::{assert_tokens, Configure, Token};
+        use serde_test::{Configure, Token};
 
         /// Serializes and deserializes prepared cases correctly
         #[test]
@@ -319,8 +319,10 @@ mod serde_support {
 
             for (text, bytes) in cases {
                 let e = text.parse::<Uuid>().unwrap();
-                assert_tokens(&e.readable(), &[Token::String(text)]);
-                assert_tokens(&e.compact(), &[Token::Bytes(bytes)]);
+                serde_test::assert_tokens(&e.readable(), &[Token::Str(text)]);
+                serde_test::assert_tokens(&e.compact(), &[Token::Bytes(bytes)]);
+                serde_test::assert_de_tokens(&e.readable(), &[Token::Bytes(bytes)]);
+                serde_test::assert_de_tokens(&e.compact(), &[Token::Str(text)]);
             }
         }
     }
