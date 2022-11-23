@@ -147,9 +147,9 @@ mod tests_v7 {
         SAMPLES.with(|samples| {
             let mut prev_timestamp = &samples[0][0..13];
             let mut prev_counter = &samples[0][15..28];
-            for i in 1..N_SAMPLES {
-                let curr_timestamp = &samples[i][0..13];
-                let curr_counter = &samples[i][15..28];
+            for e in &samples[1..] {
+                let curr_timestamp = &e[0..13];
+                let curr_counter = &e[15..28];
                 assert!(
                     prev_timestamp < curr_timestamp
                         || (prev_timestamp == curr_timestamp && prev_counter < curr_counter)

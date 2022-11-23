@@ -1,7 +1,8 @@
 #[cfg(not(feature = "std"))]
 use core as std;
 
-use std::{fmt, ops, str};
+use fstr::FStr;
+use std::{fmt, str};
 
 /// Represents a Universally Unique IDentifier.
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default)]
@@ -46,7 +47,7 @@ impl Uuid {
     }
 
     /// Returns the 8-4-4-4-12 hexadecimal string representation stored in a stack-allocated
-    /// structure that can be dereferenced as `str` and [`Display`](fmt::Display)ed.
+    /// string-like type that can be handled like [`String`] through common traits.
     ///
     /// This method is primarily for `no_std` environments where heap-allocated string types are
     /// not readily available. Use the [`fmt::Display`] trait usually to get the 8-4-4-4-12
@@ -59,11 +60,11 @@ impl Uuid {
     ///
     /// let x = "01809424-3e59-7c05-9219-566f82fff672".parse::<Uuid>()?;
     /// let y = x.encode();
-    /// assert_eq!(&y as &str, "01809424-3e59-7c05-9219-566f82fff672");
+    /// assert_eq!(y, "01809424-3e59-7c05-9219-566f82fff672");
     /// assert_eq!(format!("{}", y), "01809424-3e59-7c05-9219-566f82fff672");
     /// # Ok::<(), uuid7::ParseError>(())
     /// ```
-    pub fn encode(&self) -> impl ops::Deref<Target = str> + fmt::Display {
+    pub fn encode(&self) -> FStr<36> {
         const DIGITS: &[u8; 16] = b"0123456789abcdef";
 
         let mut buffer = [0u8; 36];
@@ -76,8 +77,7 @@ impl Uuid {
                 *buf_iter.next().unwrap() = b'-';
             }
         }
-        debug_assert!(buffer.is_ascii());
-        UuidStr(buffer)
+        unsafe { FStr::from_inner_unchecked(buffer) }
     }
 }
 
@@ -139,25 +139,6 @@ impl From<Uuid> for u128 {
 impl From<u128> for Uuid {
     fn from(src: u128) -> Self {
         Self(src.to_be_bytes())
-    }
-}
-
-/// Concrete return type of [`Uuid::encode()`] containing the stack-allocated 8-4-4-4-12 string
-/// representation.
-struct UuidStr([u8; 36]);
-
-impl ops::Deref for UuidStr {
-    type Target = str;
-
-    fn deref(&self) -> &Self::Target {
-        debug_assert!(self.0.is_ascii());
-        unsafe { str::from_utf8_unchecked(&self.0) }
-    }
-}
-
-impl fmt::Display for UuidStr {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(self)
     }
 }
 
@@ -260,7 +241,7 @@ mod serde_support {
     #[cfg(test)]
     mod tests {
         use super::Uuid;
-        use serde_test::{assert_tokens, Configure, Token};
+        use serde_test::{Configure, Token};
 
         /// Serializes and deserializes prepared cases correctly
         #[test]
@@ -319,8 +300,10 @@ mod serde_support {
 
             for (text, bytes) in cases {
                 let e = text.parse::<Uuid>().unwrap();
-                assert_tokens(&e.readable(), &[Token::String(text)]);
-                assert_tokens(&e.compact(), &[Token::Bytes(bytes)]);
+                serde_test::assert_tokens(&e.readable(), &[Token::Str(text)]);
+                serde_test::assert_tokens(&e.compact(), &[Token::Bytes(bytes)]);
+                serde_test::assert_de_tokens(&e.readable(), &[Token::Bytes(bytes)]);
+                serde_test::assert_de_tokens(&e.compact(), &[Token::Str(text)]);
             }
         }
     }
