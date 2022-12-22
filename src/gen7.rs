@@ -150,6 +150,38 @@ pub enum Status {
     ClockRollback,
 }
 
+/// Supports operations as an infinite iterator that produces a new UUIDv7 object for each call of
+/// `next()`.
+///
+/// # Examples
+///
+/// ```rust
+/// use uuid7::gen7::Generator;
+///
+/// Generator::new(rand::thread_rng())
+///     .enumerate()
+///     .skip(4)
+///     .take(4)
+///     .for_each(|(i, e)| println!("[{i}] {e}"));
+/// ```
+#[cfg(feature = "std")]
+#[cfg_attr(docsrs, doc(cfg(feature = "std")))]
+impl<R: rand::RngCore> Iterator for Generator<R> {
+    type Item = Uuid;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        Some(self.generate())
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        (usize::MAX, None)
+    }
+}
+
+#[cfg(feature = "std")]
+#[cfg_attr(docsrs, doc(cfg(feature = "std")))]
+impl<R: rand::RngCore> std::iter::FusedIterator for Generator<R> {}
+
 #[cfg(feature = "std")]
 #[cfg(test)]
 mod tests {

@@ -61,7 +61,7 @@ impl Uuid {
     /// let x = "01809424-3e59-7c05-9219-566f82fff672".parse::<Uuid>()?;
     /// let y = x.encode();
     /// assert_eq!(y, "01809424-3e59-7c05-9219-566f82fff672");
-    /// assert_eq!(format!("{}", y), "01809424-3e59-7c05-9219-566f82fff672");
+    /// assert_eq!(format!("{y}"), "01809424-3e59-7c05-9219-566f82fff672");
     /// # Ok::<(), uuid7::ParseError>(())
     /// ```
     pub fn encode(&self) -> FStr<36> {
