@@ -8,7 +8,7 @@
 //! let uuid_string: String = uuid7::uuid7().to_string();
 //! ```
 //!
-//! See [draft-ietf-uuidrev-rfc4122bis-00](https://www.ietf.org/archive/id/draft-ietf-uuidrev-rfc4122bis-00.html).
+//! See [draft-ietf-uuidrev-rfc4122bis-01](https://www.ietf.org/archive/id/draft-ietf-uuidrev-rfc4122bis-01.html).
 //!
 //! # Field and bit layout
 //!
