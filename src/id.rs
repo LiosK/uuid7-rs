@@ -195,7 +195,7 @@ mod uuid_support {
 #[cfg(feature = "serde")]
 #[cfg_attr(docsrs, doc(cfg(feature = "serde")))]
 mod serde_support {
-    use super::{fmt, Uuid};
+    use super::{fmt, str, Uuid};
     use serde::{de, Deserializer, Serializer};
 
     impl serde::Serialize for Uuid {
@@ -232,9 +232,13 @@ mod serde_support {
         }
 
         fn visit_bytes<E: de::Error>(self, value: &[u8]) -> Result<Self::Value, E> {
-            <[u8; 16]>::try_from(value)
-                .map(Self::Value::from)
-                .map_err(de::Error::custom)
+            match <[u8; 16]>::try_from(value) {
+                Ok(array_value) => Ok(Self::Value::from(array_value)),
+                Err(err) => match str::from_utf8(value) {
+                    Ok(str_value) => self.visit_str(str_value),
+                    _ => Err(de::Error::custom(err)),
+                },
+            }
         }
     }
 
@@ -304,6 +308,8 @@ mod serde_support {
                 serde_test::assert_tokens(&e.compact(), &[Token::Bytes(bytes)]);
                 serde_test::assert_de_tokens(&e.readable(), &[Token::Bytes(bytes)]);
                 serde_test::assert_de_tokens(&e.compact(), &[Token::Str(text)]);
+                serde_test::assert_de_tokens(&e.readable(), &[Token::Bytes(text.as_bytes())]);
+                serde_test::assert_de_tokens(&e.compact(), &[Token::Bytes(text.as_bytes())]);
             }
         }
     }
