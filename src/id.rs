@@ -243,8 +243,7 @@ mod serde_support {
             value.parse::<Self::Value>().map_err(de::Error::custom)
         }
 
-        fn visit_i128<E>(self,v:i128) -> Result<Self::Value,E>where E:de::Error, {
-            let v = v as u128;
+        fn visit_u128<E>(self,v: u128) -> Result<Self::Value,E>where E:de::Error, {
             Ok(Self::Value::from(v))
         }
 
