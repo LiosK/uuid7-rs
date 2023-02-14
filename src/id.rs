@@ -142,6 +142,18 @@ impl From<u128> for Uuid {
     }
 }
 
+impl From<&Uuid> for u128 {
+    fn from(src: &Uuid) -> Self {
+        Self::from_be_bytes(src.0)
+    }
+}
+
+impl From<&u128> for Uuid {
+    fn from(src: &u128) -> Self {
+        Self(src.to_be_bytes())
+    }
+}
+
 /// Error parsing an invalid string representation of UUID.
 #[derive(Clone, Eq, PartialEq, Hash, Debug)]
 pub struct ParseError {}
@@ -203,7 +215,7 @@ mod serde_support {
             if serializer.is_human_readable() {
                 serializer.serialize_str(&self.encode())
             } else {
-                serializer.serialize_bytes(self.as_bytes())
+                serializer.serialize_u128(self.into())
             }
         }
     }
@@ -213,7 +225,7 @@ mod serde_support {
             if deserializer.is_human_readable() {
                 deserializer.deserialize_str(VisitorImpl)
             } else {
-                deserializer.deserialize_bytes(VisitorImpl)
+                deserializer.deserialize_u128(VisitorImpl)
             }
         }
     }
@@ -229,6 +241,11 @@ mod serde_support {
 
         fn visit_str<E: de::Error>(self, value: &str) -> Result<Self::Value, E> {
             value.parse::<Self::Value>().map_err(de::Error::custom)
+        }
+
+        fn visit_i128<E>(self,v:i128) -> Result<Self::Value,E>where E:de::Error, {
+            let v = v as u128;
+            Ok(Self::Value::from(v))
         }
 
         fn visit_bytes<E: de::Error>(self, value: &[u8]) -> Result<Self::Value, E> {
