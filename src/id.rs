@@ -240,6 +240,10 @@ mod serde_support {
                 },
             }
         }
+
+        fn visit_u128<E: de::Error>(self, value: u128) -> Result<Self::Value, E> {
+            Ok(Self::Value::from(value))
+        }
     }
 
     #[cfg(test)]
