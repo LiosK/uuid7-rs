@@ -93,21 +93,28 @@ impl str::FromStr for Uuid {
 
     /// Creates an object from the 8-4-4-4-12 hexadecimal string representation.
     fn from_str(src: &str) -> Result<Self, Self::Err> {
-        const ERR: ParseError = ParseError {};
+        const ERR_LEN: ParseError = ParseError {
+            debug_message: "from_str: invalid length",
+        };
+        const ERR_DIGIT: ParseError = ParseError {
+            debug_message: "from_str: invalid digit",
+        };
         let mut dst = [0u8; 16];
         let mut iter = src.chars();
         for (i, e) in dst.iter_mut().enumerate() {
-            let hi = iter.next().ok_or(ERR)?.to_digit(16).ok_or(ERR)? as u8;
-            let lo = iter.next().ok_or(ERR)?.to_digit(16).ok_or(ERR)? as u8;
+            let hi = iter.next().ok_or(ERR_LEN)?.to_digit(16).ok_or(ERR_DIGIT)? as u8;
+            let lo = iter.next().ok_or(ERR_LEN)?.to_digit(16).ok_or(ERR_DIGIT)? as u8;
             *e = (hi << 4) | lo;
-            if (i == 3 || i == 5 || i == 7 || i == 9) && iter.next().ok_or(ERR)? != '-' {
-                return Err(ERR);
+            if (i == 3 || i == 5 || i == 7 || i == 9) && iter.next().ok_or(ERR_LEN)? != '-' {
+                return Err(ParseError {
+                    debug_message: "from_str: invalid format",
+                });
             }
         }
         if iter.next().is_none() {
             Ok(Self(dst))
         } else {
-            Err(ERR)
+            Err(ERR_LEN)
         }
     }
 }
@@ -143,8 +150,10 @@ impl From<u128> for Uuid {
 }
 
 /// Error parsing an invalid string representation of UUID.
-#[derive(Clone, Eq, PartialEq, Hash, Debug)]
-pub struct ParseError {}
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ParseError {
+    debug_message: &'static str,
+}
 
 impl fmt::Display for ParseError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
