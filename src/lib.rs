@@ -76,16 +76,12 @@
 //! of the UUIDv7 generation:
 //!
 //! ```rust
-//! use uuid7::gen7::{Generator, Status};
+//! use uuid7::gen7::Generator;
 //!
 //! let mut g = Generator::new(rand::rngs::OsRng);
 //! let unix_ts_ms = 0x0123_4567_8901u64;
-//! let (uuid, status) = g.generate_core(unix_ts_ms);
-//! if status == Status::ClockRollback {
-//!     panic!("clock moved back; monotonic order was broken");
-//! } else {
-//!     println!("{uuid}");
-//! }
+//! let uuid = g.generate_core(unix_ts_ms);
+//! println!("{uuid}");
 //! ```
 
 #![cfg_attr(not(feature = "std"), no_std)]
