@@ -80,8 +80,13 @@
 //!
 //! let mut g = Generator::new(rand::rngs::OsRng);
 //! let unix_ts_ms = 0x0123_4567_8901u64;
-//! let uuid = g.generate_core(unix_ts_ms);
-//! println!("{uuid}");
+//! let x = g.generate_core(unix_ts_ms);
+//! println!("{x}");
+//! if let Some(y) = g.generate_core_monotonic(unix_ts_ms) {
+//!     println!("{y}");
+//! } else {
+//!     panic!("clock moved back; monotonic order was broken");
+//! }
 //! ```
 
 #![cfg_attr(not(feature = "std"), no_std)]
