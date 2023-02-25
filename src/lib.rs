@@ -72,13 +72,13 @@
 //! println!("{uuid}"); // e.g. "2ca4b2ce-6c13-40d4-bccf-37d222820f6f"
 //! ```
 //!
-//! [`gen7::Generator`] provides an interface that allows finer control over the
-//! various aspects of the UUIDv7 generation:
+//! [`V7Generator`] provides an interface that allows finer control over the various
+//! aspects of the UUIDv7 generation:
 //!
 //! ```rust
-//! use uuid7::gen7::Generator;
+//! use uuid7::V7Generator;
 //!
-//! let mut g = Generator::new(rand::rngs::OsRng);
+//! let mut g = V7Generator::new(rand::rngs::OsRng);
 //! let unix_ts_ms = 0x0123_4567_8901u64;
 //! let x = g.generate_core(unix_ts_ms);
 //! println!("{x}");
@@ -96,7 +96,8 @@
 mod id;
 pub use id::{ParseError, Uuid};
 
-pub mod gen7;
+mod gen7;
+pub use gen7::V7Generator;
 
 mod entry;
 #[cfg(feature = "std")]

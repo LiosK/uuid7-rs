@@ -2,12 +2,12 @@
 
 #![cfg(feature = "std")]
 
-use crate::{gen7::Generator, Uuid};
+use crate::{Uuid, V7Generator};
 use rand::rngs::ThreadRng;
 use std::cell::RefCell;
 
 thread_local! {
-    static DEFAULT_GENERATOR: RefCell<Generator<ThreadRng>> = Default::default();
+    static DEFAULT_GENERATOR: RefCell<V7Generator<ThreadRng>> = Default::default();
 }
 
 /// Generates a UUIDv7 object.

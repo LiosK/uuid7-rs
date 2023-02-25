@@ -15,9 +15,9 @@ use crate::Uuid;
 /// ```rust
 /// use rand::rngs::OsRng;
 /// use std::{sync, thread};
-/// use uuid7::gen7::Generator;
+/// use uuid7::V7Generator;
 ///
-/// let g = sync::Arc::new(sync::Mutex::new(Generator::new(OsRng)));
+/// let g = sync::Arc::new(sync::Mutex::new(V7Generator::new(OsRng)));
 /// let handle = {
 ///     let g = sync::Arc::clone(&g);
 ///     thread::spawn(move || {
@@ -36,7 +36,7 @@ use crate::Uuid;
 /// handle.join().unwrap();
 /// ```
 #[derive(Clone, Eq, PartialEq, Debug, Default)]
-pub struct Generator<R> {
+pub struct V7Generator<R> {
     timestamp: u64,
     counter: u64,
 
@@ -44,7 +44,7 @@ pub struct Generator<R> {
     rng: R,
 }
 
-impl<R: rand::RngCore> Generator<R> {
+impl<R: rand::RngCore> V7Generator<R> {
     /// Creates a generator instance.
     pub const fn new(rng: R) -> Self {
         Self {
@@ -160,9 +160,9 @@ impl<R: rand::RngCore> Generator<R> {
 /// # Examples
 ///
 /// ```rust
-/// use uuid7::gen7::Generator;
+/// use uuid7::V7Generator;
 ///
-/// Generator::new(rand::thread_rng())
+/// V7Generator::new(rand::thread_rng())
 ///     .enumerate()
 ///     .skip(4)
 ///     .take(4)
@@ -170,7 +170,7 @@ impl<R: rand::RngCore> Generator<R> {
 /// ```
 #[cfg(feature = "std")]
 #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
-impl<R: rand::RngCore> Iterator for Generator<R> {
+impl<R: rand::RngCore> Iterator for V7Generator<R> {
     type Item = Uuid;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -184,19 +184,19 @@ impl<R: rand::RngCore> Iterator for Generator<R> {
 
 #[cfg(feature = "std")]
 #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
-impl<R: rand::RngCore> std::iter::FusedIterator for Generator<R> {}
+impl<R: rand::RngCore> std::iter::FusedIterator for V7Generator<R> {}
 
 #[cfg(feature = "std")]
 #[cfg(test)]
 mod tests_generate_core {
-    use super::Generator;
+    use super::V7Generator;
     use rand::rngs::ThreadRng;
 
     /// Generates increasing UUIDs even with decreasing or constant timestamp
     #[test]
     fn generates_increasing_uuids_even_with_decreasing_or_constant_timestamp() {
         let ts = 0x0123_4567_89abu64;
-        let mut g: Generator<ThreadRng> = Default::default();
+        let mut g: V7Generator<ThreadRng> = Default::default();
         let mut prev = g.generate_core(ts);
         assert_eq!(prev.as_bytes()[..6], ts.to_be_bytes()[2..]);
         for i in 0..100_000u64 {
@@ -211,7 +211,7 @@ mod tests_generate_core {
     #[test]
     fn breaks_increasing_order_of_uuids_if_timestamp_moves_backward_a_lot() {
         let ts = 0x0123_4567_89abu64;
-        let mut g: Generator<ThreadRng> = Default::default();
+        let mut g: V7Generator<ThreadRng> = Default::default();
         let prev = g.generate_core(ts);
         assert_eq!(prev.as_bytes()[..6], ts.to_be_bytes()[2..]);
         let curr = g.generate_core(ts - 10_000);
@@ -223,14 +223,14 @@ mod tests_generate_core {
 #[cfg(feature = "std")]
 #[cfg(test)]
 mod tests_generate_core_monotonic {
-    use super::Generator;
+    use super::V7Generator;
     use rand::rngs::ThreadRng;
 
     /// Generates increasing UUIDs even with decreasing or constant timestamp
     #[test]
     fn generates_increasing_uuids_even_with_decreasing_or_constant_timestamp() {
         let ts = 0x0123_4567_89abu64;
-        let mut g: Generator<ThreadRng> = Default::default();
+        let mut g: V7Generator<ThreadRng> = Default::default();
         let mut prev = g.generate_core_monotonic(ts).unwrap();
         assert_eq!(prev.as_bytes()[..6], ts.to_be_bytes()[2..]);
         for i in 0..100_000u64 {
@@ -245,7 +245,7 @@ mod tests_generate_core_monotonic {
     #[test]
     fn returns_none_if_timestamp_moves_backward_a_lot() {
         let ts = 0x0123_4567_89abu64;
-        let mut g: Generator<ThreadRng> = Default::default();
+        let mut g: V7Generator<ThreadRng> = Default::default();
         let prev = g.generate_core_monotonic(ts).unwrap();
         assert_eq!(prev.as_bytes()[..6], ts.to_be_bytes()[2..]);
         let curr = g.generate_core_monotonic(ts - 10_000);
