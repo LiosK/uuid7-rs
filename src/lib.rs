@@ -80,7 +80,7 @@
 //!
 //! let mut g = V7Generator::new(rand::rngs::OsRng);
 //! let unix_ts_ms = 0x0123_4567_8901u64;
-//! let x = g.generate_core(unix_ts_ms);
+//! let x = g.generate_from_ts(unix_ts_ms);
 //! println!("{x}");
 //!
 //! if let Some(y) = g.generate_monotonic() {
