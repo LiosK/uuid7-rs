@@ -77,8 +77,8 @@ let uuid = uuid7::uuid4();
 println!("{uuid}"); // e.g. "2ca4b2ce-6c13-40d4-bccf-37d222820f6f"
 ```
 
-`gen7::Generator` provides a flexible interface to customize the various aspects
-of the UUIDv7 generation:
+`gen7::Generator` provides an interface that allows finer control over the
+various aspects of the UUIDv7 generation:
 
 ```rust
 use uuid7::gen7::Generator;
@@ -87,10 +87,11 @@ let mut g = Generator::new(rand::rngs::OsRng);
 let unix_ts_ms = 0x0123_4567_8901u64;
 let x = g.generate_core(unix_ts_ms);
 println!("{x}");
-if let Some(y) = g.generate_core_monotonic(unix_ts_ms) {
+
+if let Some(y) = g.generate_monotonic() {
     println!("{y}");
 } else {
-    panic!("clock moved back; monotonic order was broken");
+    panic!("clock moved back to unbearable extent");
 }
 ```
 
