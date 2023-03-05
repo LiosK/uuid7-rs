@@ -83,7 +83,7 @@
 //! let x = g.generate_from_ts(unix_ts_ms);
 //! println!("{x}");
 //!
-//! if let Some(y) = g.generate_monotonic() {
+//! if let Some(y) = g.generate_no_rewind() {
 //!     println!("{y}");
 //! } else {
 //!     panic!("clock moved back to unbearable extent");
