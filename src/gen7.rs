@@ -35,6 +35,28 @@ use crate::Uuid;
 ///
 /// handle.join().unwrap();
 /// ```
+///
+/// # Generator functions
+///
+/// The generator offers four different methods to generate a UUIDv7:
+///
+/// | Flavor                         | Timestamp | On big clock rewind |
+/// | ------------------------------ | --------- | ------------------- |
+/// | [`generate`]                   | Now       | Rewinds state       |
+/// | [`generate_no_rewind`]         | Now       | Returns `None`      |
+/// | [`generate_from_ts`]           | Argument  | Rewinds state       |
+/// | [`generate_from_ts_no_rewind`] | Argument  | Returns `None`      |
+///
+/// Each method returns monotonically increasing UUIDs unless a timestamp provided is significantly
+/// (by ten seconds or more) smaller than the one embedded in the immediately preceding UUID. If
+/// such a significant clock rollback is detected, the standard `generate` rewinds the generator
+/// state and returns a new UUID based on the current timestamp, whereas `no_rewind` variants keep
+/// the state untouched and return `None`. `from_ts` functions offer low-level primitives.
+///
+/// [`generate`]: V7Generator::generate
+/// [`generate_no_rewind`]: V7Generator::generate_no_rewind
+/// [`generate_from_ts`]: V7Generator::generate_from_ts
+/// [`generate_from_ts_no_rewind`]: V7Generator::generate_from_ts_no_rewind
 #[derive(Clone, Eq, PartialEq, Debug, Default)]
 pub struct V7Generator<R> {
     timestamp: u64,
@@ -56,10 +78,7 @@ impl<R: rand::RngCore> V7Generator<R> {
 
     /// Generates a new UUIDv7 object from the current timestamp.
     ///
-    /// This method returns monotonically increasing UUIDs unless the up-to-date timestamp is
-    /// significantly (by ten seconds or more) smaller than the one embedded in the immediately
-    /// preceding UUID. If such a significant clock rollback is detected, this method rewinds the
-    /// generator state and returns a new UUID based on the up-to-date timestamp.
+    /// See the [`V7Generator`] type documentation for the description.
     #[cfg(feature = "std")]
     #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
     pub fn generate(&mut self) -> Uuid {
@@ -75,10 +94,7 @@ impl<R: rand::RngCore> V7Generator<R> {
     /// Generates a new UUIDv7 object from the current timestamp, guaranteeing the monotonic order
     /// of generated IDs despite a significant timestamp rollback.
     ///
-    /// This method returns monotonically increasing UUIDs unless the up-to-date timestamp is
-    /// significantly (by ten seconds or more) smaller than the one embedded in the immediately
-    /// preceding UUID. If such a significant clock rollback is detected, this method returns
-    /// `None` and keeps the generator state untouched.
+    /// See the [`V7Generator`] type documentation for the description.
     #[cfg(feature = "std")]
     #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
     pub fn generate_no_rewind(&mut self) -> Option<Uuid> {
@@ -93,10 +109,7 @@ impl<R: rand::RngCore> V7Generator<R> {
 
     /// Generates a new UUIDv7 object from a given `unix_ts_ms`.
     ///
-    /// This method returns monotonically increasing UUIDs unless a given `unix_ts_ms` is
-    /// significantly (by ten seconds or more) smaller than the one embedded in the immediately
-    /// preceding UUID. If such a significant clock rollback is detected, this method rewinds the
-    /// generator state and returns a new UUID based on the given argument.
+    /// See the [`V7Generator`] type documentation for the description.
     ///
     /// # Panics
     ///
@@ -114,10 +127,7 @@ impl<R: rand::RngCore> V7Generator<R> {
     /// Generates a new UUIDv7 object from a given `unix_ts_ms`, guaranteeing the monotonic order
     /// of generated IDs despite a significant timestamp rollback.
     ///
-    /// This method returns monotonically increasing UUIDs unless a given `unix_ts_ms` is
-    /// significantly (by ten seconds or more) smaller than the one embedded in the immediately
-    /// preceding UUID. If such a significant clock rollback is detected, this method returns
-    /// `None` and keeps the generator state untouched.
+    /// See the [`V7Generator`] type documentation for the description.
     ///
     /// # Panics
     ///
