@@ -72,19 +72,21 @@
 //! println!("{uuid}"); // e.g. "2ca4b2ce-6c13-40d4-bccf-37d222820f6f"
 //! ```
 //!
-//! [`gen7::Generator`] provides a flexible interface to customize the various aspects
-//! of the UUIDv7 generation:
+//! [`V7Generator`] provides an interface that allows finer control over the various
+//! aspects of the UUIDv7 generation:
 //!
 //! ```rust
-//! use uuid7::gen7::{Generator, Status};
+//! use uuid7::V7Generator;
 //!
-//! let mut g = Generator::new(rand::rngs::OsRng);
+//! let mut g = V7Generator::new(rand::rngs::OsRng);
 //! let unix_ts_ms = 0x0123_4567_8901u64;
-//! let (uuid, status) = g.generate_core(unix_ts_ms);
-//! if status == Status::ClockRollback {
-//!     panic!("clock moved back; monotonic order was broken");
+//! let x = g.generate_core(unix_ts_ms, 10_000);
+//! println!("{x}");
+//!
+//! if let Some(y) = g.generate_core_no_rewind(unix_ts_ms, 10_000) {
+//!     println!("{y}");
 //! } else {
-//!     println!("{uuid}");
+//!     panic!("clock moved back by 10_000 milliseconds or more");
 //! }
 //! ```
 
@@ -94,7 +96,8 @@
 mod id;
 pub use id::{ParseError, Uuid};
 
-pub mod gen7;
+mod gen7;
+pub use gen7::V7Generator;
 
 mod entry;
 #[cfg(feature = "std")]

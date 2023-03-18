@@ -9,10 +9,10 @@ use std::{fmt, str};
 pub struct Uuid([u8; 16]);
 
 impl Uuid {
-    /// Nil UUID (00000000-0000-0000-0000-000000000000)
+    /// The Nil UUID value (00000000-0000-0000-0000-000000000000).
     pub const NIL: Self = Self([0x00; 16]);
 
-    /// Max UUID (ffffffff-ffff-ffff-ffff-ffffffffffff)
+    /// The Max UUID value (ffffffff-ffff-ffff-ffff-ffffffffffff).
     pub const MAX: Self = Self([0xff; 16]);
 
     /// Returns a reference to the underlying byte array.
@@ -149,7 +149,7 @@ impl From<u128> for Uuid {
     }
 }
 
-/// Error parsing an invalid string representation of UUID.
+/// An error parsing an invalid string representation of UUID.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ParseError {
     debug_message: &'static str,

@@ -6,7 +6,7 @@ use crate::Uuid;
 /// UUIDs generated within the same millisecond.
 ///
 /// This type provides the interface to customize the random number generator, system clock, and
-/// counter overflow handling of a UUIDv7 generator. It also helps control the scope of guaranteed
+/// clock rollback handling of a UUIDv7 generator. It also helps control the scope of guaranteed
 /// order of the generated UUIDs. The following example guarantees the process-wide (cross-thread)
 /// monotonicity using Rust's standard synchronization mechanism.
 ///
@@ -15,9 +15,9 @@ use crate::Uuid;
 /// ```rust
 /// use rand::rngs::OsRng;
 /// use std::{sync, thread};
-/// use uuid7::gen7::Generator;
+/// use uuid7::V7Generator;
 ///
-/// let g = sync::Arc::new(sync::Mutex::new(Generator::new(OsRng)));
+/// let g = sync::Arc::new(sync::Mutex::new(V7Generator::new(OsRng)));
 /// let handle = {
 ///     let g = sync::Arc::clone(&g);
 ///     thread::spawn(move || {
@@ -35,16 +35,39 @@ use crate::Uuid;
 ///
 /// handle.join().unwrap();
 /// ```
+///
+/// # Generator functions
+///
+/// The generator offers four different methods to generate a UUIDv7:
+///
+/// | Flavor                      | Timestamp | On big clock rewind |
+/// | --------------------------- | --------- | ------------------- |
+/// | [`generate`]                | Now       | Rewinds state       |
+/// | [`generate_no_rewind`]      | Now       | Returns `None`      |
+/// | [`generate_core`]           | Argument  | Rewinds state       |
+/// | [`generate_core_no_rewind`] | Argument  | Returns `None`      |
+///
+/// Each method returns monotonically increasing UUIDs unless a timestamp provided is significantly
+/// (by ten seconds or more by default) smaller than the one embedded in the immediately preceding
+/// UUID. If such a significant clock rollback is detected, the standard `generate` rewinds the
+/// generator state and returns a new UUID based on the current timestamp, whereas `no_rewind`
+/// variants keep the state untouched and return `None`. `core` functions offer low-level
+/// primitives.
+///
+/// [`generate`]: V7Generator::generate
+/// [`generate_no_rewind`]: V7Generator::generate_no_rewind
+/// [`generate_core`]: V7Generator::generate_core
+/// [`generate_core_no_rewind`]: V7Generator::generate_core_no_rewind
 #[derive(Clone, Eq, PartialEq, Debug, Default)]
-pub struct Generator<R> {
+pub struct V7Generator<R> {
     timestamp: u64,
     counter: u64,
 
-    /// Random number generator used by the generator.
+    /// The random number generator used by the generator.
     rng: R,
 }
 
-impl<R: rand::RngCore> Generator<R> {
+impl<R: rand::RngCore> V7Generator<R> {
     /// Creates a generator instance.
     pub const fn new(rng: R) -> Self {
         Self {
@@ -54,7 +77,9 @@ impl<R: rand::RngCore> Generator<R> {
         }
     }
 
-    /// Generates a new UUIDv7 object.
+    /// Generates a new UUIDv7 object from the current timestamp.
+    ///
+    /// See the [`V7Generator`] type documentation for the description.
     #[cfg(feature = "std")]
     #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
     pub fn generate(&mut self) -> Uuid {
@@ -64,90 +89,97 @@ impl<R: rand::RngCore> Generator<R> {
                 .duration_since(time::UNIX_EPOCH)
                 .expect("clock may have gone backward")
                 .as_millis() as u64,
+            10_000,
         )
-        .0
+    }
+
+    /// Generates a new UUIDv7 object from the current timestamp, guaranteeing the monotonic order
+    /// of generated IDs despite a significant timestamp rollback.
+    ///
+    /// See the [`V7Generator`] type documentation for the description.
+    #[cfg(feature = "std")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
+    pub fn generate_no_rewind(&mut self) -> Option<Uuid> {
+        use std::time;
+        self.generate_core_no_rewind(
+            time::SystemTime::now()
+                .duration_since(time::UNIX_EPOCH)
+                .expect("clock may have gone backward")
+                .as_millis() as u64,
+            10_000,
+        )
     }
 
     /// Generates a new UUIDv7 object from a given `unix_ts_ms`.
     ///
-    /// This method returns a generated UUID and one of the [`Status`] codes that describe the
-    /// internal state involved in the generation. A caller can usually ignore them unless the
-    /// monotonic order of generated UUIDs is of critical importance to the application.
+    /// See the [`V7Generator`] type documentation for the description.
     ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// use uuid7::gen7::{Generator, Status};
-    /// let mut g = Generator::new(rand::thread_rng());
-    ///
-    /// let ts = 0x017f_22e2_79b0u64;
-    /// let (first, status) = g.generate_core(ts);
-    /// assert_eq!(status, Status::NewTimestamp);
-    /// assert_eq!(first.as_bytes()[0..6], ts.to_be_bytes()[2..]);
-    ///
-    /// let (second, status) = g.generate_core(ts);
-    /// if status == Status::ClockRollback {
-    ///     panic!("clock moved backward; monotonic order of UUIDs broken");
-    /// } else {
-    ///     assert!(second.as_bytes()[0..6] >= ts.to_be_bytes()[2..]);
-    /// }
-    /// ```
+    /// The `rollback_allowance` parameter specifies the amount of `unix_ts_ms` rollback that is
+    /// considered significant. A suggested value is `10_000` (milliseconds).
     ///
     /// # Panics
     ///
     /// Panics if the argument is not a 48-bit positive integer.
-    pub fn generate_core(&mut self, unix_ts_ms: u64) -> (Uuid, Status) {
+    pub fn generate_core(&mut self, unix_ts_ms: u64, rollback_allowance: u64) -> Uuid {
+        if let Some(value) = self.generate_core_no_rewind(unix_ts_ms, rollback_allowance) {
+            value
+        } else {
+            // reset state and resume
+            self.timestamp = 0;
+            self.generate_core_no_rewind(unix_ts_ms, rollback_allowance)
+                .unwrap()
+        }
+    }
+
+    /// Generates a new UUIDv7 object from a given `unix_ts_ms`, guaranteeing the monotonic order
+    /// of generated IDs despite a significant timestamp rollback.
+    ///
+    /// See the [`V7Generator`] type documentation for the description.
+    ///
+    /// The `rollback_allowance` parameter specifies the amount of `unix_ts_ms` rollback that is
+    /// considered significant. A suggested value is `10_000` (milliseconds).
+    ///
+    /// # Panics
+    ///
+    /// Panics if the argument is not a 48-bit positive integer.
+    pub fn generate_core_no_rewind(
+        &mut self,
+        unix_ts_ms: u64,
+        rollback_allowance: u64,
+    ) -> Option<Uuid> {
         const MAX_COUNTER: u64 = (1 << 42) - 1;
 
-        if unix_ts_ms == 0 || unix_ts_ms >= 1 << 48 {
-            panic!("`unix_ts_ms` must be a 48-bit positive integer");
-        }
+        assert!(
+            0 < unix_ts_ms && unix_ts_ms < 1 << 48,
+            "`unix_ts_ms` must be a 48-bit positive integer"
+        );
+        assert!(
+            rollback_allowance < 1 << 48,
+            "too large `rollback_allowance`"
+        );
 
-        let mut status = Status::NewTimestamp;
         if unix_ts_ms > self.timestamp {
             self.timestamp = unix_ts_ms;
             self.counter = self.rng.next_u64() & MAX_COUNTER;
-        } else if unix_ts_ms + 10_000 > self.timestamp {
+        } else if unix_ts_ms + rollback_allowance > self.timestamp {
+            // go on with previous timestamp if new one is not much smaller
             self.counter += 1;
-            status = Status::CounterInc;
             if self.counter > MAX_COUNTER {
                 // increment timestamp at counter overflow
                 self.timestamp += 1;
                 self.counter = self.rng.next_u64() & MAX_COUNTER;
-                status = Status::TimestampInc;
             }
         } else {
-            // reset state if clock moves back by ten seconds or more
-            self.timestamp = unix_ts_ms;
-            self.counter = self.rng.next_u64() & MAX_COUNTER;
-            status = Status::ClockRollback;
+            // abort if clock moves back to unbearable extent
+            return None;
         }
 
-        (
-            Uuid::from_fields_v7(
-                self.timestamp,
-                (self.counter >> 30) as u16,
-                ((self.counter & 0x3fff_ffff) << 32) | self.rng.next_u32() as u64,
-            ),
-            status,
-        )
+        Some(Uuid::from_fields_v7(
+            self.timestamp,
+            (self.counter >> 30) as u16,
+            ((self.counter & 0x3fff_ffff) << 32) | self.rng.next_u32() as u64,
+        ))
     }
-}
-
-/// Status code returned by [`Generator::generate_core`] method.
-#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
-pub enum Status {
-    /// Returned when `unix_ts_ms` given was used because it was greater than the previous one.
-    NewTimestamp,
-    /// Returned when the counter was incremented because `unix_ts_ms` given was no greater than
-    /// the previous one.
-    CounterInc,
-    /// Returned when `unix_ts_ms` was incremented because the counter was incremented and reached
-    /// its maximum value.
-    TimestampInc,
-    /// Returned when the monotonic order of UUIDs was broken because `unix_ts_ms` given was less
-    /// than the previous one by ten seconds or more.
-    ClockRollback,
 }
 
 /// Supports operations as an infinite iterator that produces a new UUIDv7 object for each call of
@@ -156,9 +188,9 @@ pub enum Status {
 /// # Examples
 ///
 /// ```rust
-/// use uuid7::gen7::Generator;
+/// use uuid7::V7Generator;
 ///
-/// Generator::new(rand::thread_rng())
+/// V7Generator::new(rand::thread_rng())
 ///     .enumerate()
 ///     .skip(4)
 ///     .take(4)
@@ -166,7 +198,7 @@ pub enum Status {
 /// ```
 #[cfg(feature = "std")]
 #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
-impl<R: rand::RngCore> Iterator for Generator<R> {
+impl<R: rand::RngCore> Iterator for V7Generator<R> {
     type Item = Uuid;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -180,28 +212,73 @@ impl<R: rand::RngCore> Iterator for Generator<R> {
 
 #[cfg(feature = "std")]
 #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
-impl<R: rand::RngCore> std::iter::FusedIterator for Generator<R> {}
+impl<R: rand::RngCore> std::iter::FusedIterator for V7Generator<R> {}
 
 #[cfg(feature = "std")]
 #[cfg(test)]
-mod tests {
-    use super::{Generator, Status};
+mod tests_generate_core {
+    use super::V7Generator;
     use rand::rngs::ThreadRng;
 
     /// Generates increasing UUIDs even with decreasing or constant timestamp
     #[test]
     fn generates_increasing_uuids_even_with_decreasing_or_constant_timestamp() {
         let ts = 0x0123_4567_89abu64;
-        let mut g: Generator<ThreadRng> = Default::default();
-        let (mut prev, status) = g.generate_core(ts);
-        assert_eq!(status, Status::NewTimestamp);
+        let mut g: V7Generator<ThreadRng> = Default::default();
+        let mut prev = g.generate_core(ts, 10_000);
         assert_eq!(prev.as_bytes()[..6], ts.to_be_bytes()[2..]);
         for i in 0..100_000u64 {
-            let (curr, status) = g.generate_core(ts - i.min(4_000));
-            assert!(status == Status::CounterInc || status == Status::TimestampInc);
+            let curr = g.generate_core(ts - i.min(4_000), 10_000);
             assert!(prev < curr);
             prev = curr;
         }
         assert!(prev.as_bytes()[..6] >= ts.to_be_bytes()[2..]);
+    }
+
+    /// Breaks increasing order of UUIDs if timestamp moves backward a lot
+    #[test]
+    fn breaks_increasing_order_of_uuids_if_timestamp_moves_backward_a_lot() {
+        let ts = 0x0123_4567_89abu64;
+        let mut g: V7Generator<ThreadRng> = Default::default();
+        let prev = g.generate_core(ts, 10_000);
+        assert_eq!(prev.as_bytes()[..6], ts.to_be_bytes()[2..]);
+        let curr = g.generate_core(ts - 10_000, 10_000);
+        assert!(prev > curr);
+        assert_eq!(curr.as_bytes()[..6], (ts - 10_000).to_be_bytes()[2..]);
+    }
+}
+
+#[cfg(feature = "std")]
+#[cfg(test)]
+mod tests_generate_core_no_rewind {
+    use super::V7Generator;
+    use rand::rngs::ThreadRng;
+
+    /// Generates increasing UUIDs even with decreasing or constant timestamp
+    #[test]
+    fn generates_increasing_uuids_even_with_decreasing_or_constant_timestamp() {
+        let ts = 0x0123_4567_89abu64;
+        let mut g: V7Generator<ThreadRng> = Default::default();
+        let mut prev = g.generate_core_no_rewind(ts, 10_000).unwrap();
+        assert_eq!(prev.as_bytes()[..6], ts.to_be_bytes()[2..]);
+        for i in 0..100_000u64 {
+            let curr = g
+                .generate_core_no_rewind(ts - i.min(4_000), 10_000)
+                .unwrap();
+            assert!(prev < curr);
+            prev = curr;
+        }
+        assert!(prev.as_bytes()[..6] >= ts.to_be_bytes()[2..]);
+    }
+
+    /// Returns None if timestamp moves backward a lot
+    #[test]
+    fn returns_none_if_timestamp_moves_backward_a_lot() {
+        let ts = 0x0123_4567_89abu64;
+        let mut g: V7Generator<ThreadRng> = Default::default();
+        let prev = g.generate_core_no_rewind(ts, 10_000).unwrap();
+        assert_eq!(prev.as_bytes()[..6], ts.to_be_bytes()[2..]);
+        let curr = g.generate_core_no_rewind(ts - 10_000, 10_000);
+        assert!(curr.is_none());
     }
 }
