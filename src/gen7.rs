@@ -40,23 +40,24 @@ use crate::Uuid;
 ///
 /// The generator offers four different methods to generate a UUIDv7:
 ///
-/// | Flavor                         | Timestamp | On big clock rewind |
-/// | ------------------------------ | --------- | ------------------- |
-/// | [`generate`]                   | Now       | Rewinds state       |
-/// | [`generate_no_rewind`]         | Now       | Returns `None`      |
-/// | [`generate_from_ts`]           | Argument  | Rewinds state       |
-/// | [`generate_from_ts_no_rewind`] | Argument  | Returns `None`      |
+/// | Flavor                      | Timestamp | On big clock rewind |
+/// | --------------------------- | --------- | ------------------- |
+/// | [`generate`]                | Now       | Rewinds state       |
+/// | [`generate_no_rewind`]      | Now       | Returns `None`      |
+/// | [`generate_core`]           | Argument  | Rewinds state       |
+/// | [`generate_core_no_rewind`] | Argument  | Returns `None`      |
 ///
 /// Each method returns monotonically increasing UUIDs unless a timestamp provided is significantly
-/// (by ten seconds or more) smaller than the one embedded in the immediately preceding UUID. If
-/// such a significant clock rollback is detected, the standard `generate` rewinds the generator
-/// state and returns a new UUID based on the current timestamp, whereas `no_rewind` variants keep
-/// the state untouched and return `None`. `from_ts` functions offer low-level primitives.
+/// (by ten seconds or more by default) smaller than the one embedded in the immediately preceding
+/// UUID. If such a significant clock rollback is detected, the standard `generate` rewinds the
+/// generator state and returns a new UUID based on the current timestamp, whereas `no_rewind`
+/// variants keep the state untouched and return `None`. `core` functions offer low-level
+/// primitives.
 ///
 /// [`generate`]: V7Generator::generate
 /// [`generate_no_rewind`]: V7Generator::generate_no_rewind
-/// [`generate_from_ts`]: V7Generator::generate_from_ts
-/// [`generate_from_ts_no_rewind`]: V7Generator::generate_from_ts_no_rewind
+/// [`generate_core`]: V7Generator::generate_core
+/// [`generate_core_no_rewind`]: V7Generator::generate_core_no_rewind
 #[derive(Clone, Eq, PartialEq, Debug, Default)]
 pub struct V7Generator<R> {
     timestamp: u64,
@@ -83,11 +84,12 @@ impl<R: rand::RngCore> V7Generator<R> {
     #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
     pub fn generate(&mut self) -> Uuid {
         use std::time;
-        self.generate_from_ts(
+        self.generate_core(
             time::SystemTime::now()
                 .duration_since(time::UNIX_EPOCH)
                 .expect("clock may have gone backward")
                 .as_millis() as u64,
+            10_000,
         )
     }
 
@@ -99,11 +101,12 @@ impl<R: rand::RngCore> V7Generator<R> {
     #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
     pub fn generate_no_rewind(&mut self) -> Option<Uuid> {
         use std::time;
-        self.generate_from_ts_no_rewind(
+        self.generate_core_no_rewind(
             time::SystemTime::now()
                 .duration_since(time::UNIX_EPOCH)
                 .expect("clock may have gone backward")
                 .as_millis() as u64,
+            10_000,
         )
     }
 
@@ -111,16 +114,20 @@ impl<R: rand::RngCore> V7Generator<R> {
     ///
     /// See the [`V7Generator`] type documentation for the description.
     ///
+    /// The `rollback_allowance` parameter specifies the amount of `unix_ts_ms` rollback that is
+    /// considered significant. A suggested value is `10_000` (milliseconds).
+    ///
     /// # Panics
     ///
     /// Panics if the argument is not a 48-bit positive integer.
-    pub fn generate_from_ts(&mut self, unix_ts_ms: u64) -> Uuid {
-        if let Some(value) = self.generate_from_ts_no_rewind(unix_ts_ms) {
+    pub fn generate_core(&mut self, unix_ts_ms: u64, rollback_allowance: u64) -> Uuid {
+        if let Some(value) = self.generate_core_no_rewind(unix_ts_ms, rollback_allowance) {
             value
         } else {
             // reset state and resume
             self.timestamp = 0;
-            self.generate_from_ts_no_rewind(unix_ts_ms).unwrap()
+            self.generate_core_no_rewind(unix_ts_ms, rollback_allowance)
+                .unwrap()
         }
     }
 
@@ -129,21 +136,32 @@ impl<R: rand::RngCore> V7Generator<R> {
     ///
     /// See the [`V7Generator`] type documentation for the description.
     ///
+    /// The `rollback_allowance` parameter specifies the amount of `unix_ts_ms` rollback that is
+    /// considered significant. A suggested value is `10_000` (milliseconds).
+    ///
     /// # Panics
     ///
     /// Panics if the argument is not a 48-bit positive integer.
-    pub fn generate_from_ts_no_rewind(&mut self, unix_ts_ms: u64) -> Option<Uuid> {
+    pub fn generate_core_no_rewind(
+        &mut self,
+        unix_ts_ms: u64,
+        rollback_allowance: u64,
+    ) -> Option<Uuid> {
         const MAX_COUNTER: u64 = (1 << 42) - 1;
-        const ROLLBACK_ALLOWANCE: u64 = 10_000; // 10 seconds
 
-        if unix_ts_ms == 0 || unix_ts_ms >= 1 << 48 {
-            panic!("`unix_ts_ms` must be a 48-bit positive integer");
-        }
+        assert!(
+            0 < unix_ts_ms && unix_ts_ms < 1 << 48,
+            "`unix_ts_ms` must be a 48-bit positive integer"
+        );
+        assert!(
+            rollback_allowance < 1 << 48,
+            "too large `rollback_allowance`"
+        );
 
         if unix_ts_ms > self.timestamp {
             self.timestamp = unix_ts_ms;
             self.counter = self.rng.next_u64() & MAX_COUNTER;
-        } else if unix_ts_ms + ROLLBACK_ALLOWANCE > self.timestamp {
+        } else if unix_ts_ms + rollback_allowance > self.timestamp {
             // go on with previous timestamp if new one is not much smaller
             self.counter += 1;
             if self.counter > MAX_COUNTER {
@@ -198,7 +216,7 @@ impl<R: rand::RngCore> std::iter::FusedIterator for V7Generator<R> {}
 
 #[cfg(feature = "std")]
 #[cfg(test)]
-mod tests_generate_from_ts {
+mod tests_generate_core {
     use super::V7Generator;
     use rand::rngs::ThreadRng;
 
@@ -207,10 +225,10 @@ mod tests_generate_from_ts {
     fn generates_increasing_uuids_even_with_decreasing_or_constant_timestamp() {
         let ts = 0x0123_4567_89abu64;
         let mut g: V7Generator<ThreadRng> = Default::default();
-        let mut prev = g.generate_from_ts(ts);
+        let mut prev = g.generate_core(ts, 10_000);
         assert_eq!(prev.as_bytes()[..6], ts.to_be_bytes()[2..]);
         for i in 0..100_000u64 {
-            let curr = g.generate_from_ts(ts - i.min(4_000));
+            let curr = g.generate_core(ts - i.min(4_000), 10_000);
             assert!(prev < curr);
             prev = curr;
         }
@@ -222,9 +240,9 @@ mod tests_generate_from_ts {
     fn breaks_increasing_order_of_uuids_if_timestamp_moves_backward_a_lot() {
         let ts = 0x0123_4567_89abu64;
         let mut g: V7Generator<ThreadRng> = Default::default();
-        let prev = g.generate_from_ts(ts);
+        let prev = g.generate_core(ts, 10_000);
         assert_eq!(prev.as_bytes()[..6], ts.to_be_bytes()[2..]);
-        let curr = g.generate_from_ts(ts - 10_000);
+        let curr = g.generate_core(ts - 10_000, 10_000);
         assert!(prev > curr);
         assert_eq!(curr.as_bytes()[..6], (ts - 10_000).to_be_bytes()[2..]);
     }
@@ -232,7 +250,7 @@ mod tests_generate_from_ts {
 
 #[cfg(feature = "std")]
 #[cfg(test)]
-mod tests_generate_from_ts_no_rewind {
+mod tests_generate_core_no_rewind {
     use super::V7Generator;
     use rand::rngs::ThreadRng;
 
@@ -241,10 +259,12 @@ mod tests_generate_from_ts_no_rewind {
     fn generates_increasing_uuids_even_with_decreasing_or_constant_timestamp() {
         let ts = 0x0123_4567_89abu64;
         let mut g: V7Generator<ThreadRng> = Default::default();
-        let mut prev = g.generate_from_ts_no_rewind(ts).unwrap();
+        let mut prev = g.generate_core_no_rewind(ts, 10_000).unwrap();
         assert_eq!(prev.as_bytes()[..6], ts.to_be_bytes()[2..]);
         for i in 0..100_000u64 {
-            let curr = g.generate_from_ts_no_rewind(ts - i.min(4_000)).unwrap();
+            let curr = g
+                .generate_core_no_rewind(ts - i.min(4_000), 10_000)
+                .unwrap();
             assert!(prev < curr);
             prev = curr;
         }
@@ -256,9 +276,9 @@ mod tests_generate_from_ts_no_rewind {
     fn returns_none_if_timestamp_moves_backward_a_lot() {
         let ts = 0x0123_4567_89abu64;
         let mut g: V7Generator<ThreadRng> = Default::default();
-        let prev = g.generate_from_ts_no_rewind(ts).unwrap();
+        let prev = g.generate_core_no_rewind(ts, 10_000).unwrap();
         assert_eq!(prev.as_bytes()[..6], ts.to_be_bytes()[2..]);
-        let curr = g.generate_from_ts_no_rewind(ts - 10_000);
+        let curr = g.generate_core_no_rewind(ts - 10_000, 10_000);
         assert!(curr.is_none());
     }
 }

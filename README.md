@@ -85,13 +85,13 @@ use uuid7::V7Generator;
 
 let mut g = V7Generator::new(rand::rngs::OsRng);
 let unix_ts_ms = 0x0123_4567_8901u64;
-let x = g.generate_from_ts(unix_ts_ms);
+let x = g.generate_core(unix_ts_ms, 10_000);
 println!("{x}");
 
-if let Some(y) = g.generate_no_rewind() {
+if let Some(y) = g.generate_core_no_rewind(unix_ts_ms, 10_000) {
     println!("{y}");
 } else {
-    panic!("clock moved back to unbearable extent");
+    panic!("clock moved back by 10_000 milliseconds or more");
 }
 ```
 
