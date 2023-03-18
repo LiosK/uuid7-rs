@@ -63,7 +63,7 @@ pub struct V7Generator<R> {
     timestamp: u64,
     counter: u64,
 
-    /// Random number generator used by the generator.
+    /// The random number generator used by the generator.
     rng: R,
 }
 
