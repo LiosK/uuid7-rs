@@ -47,10 +47,10 @@ use crate::Uuid;
 /// | [`generate_or_reset_core`] | Argument  | Resets generator    |
 /// | [`generate_or_abort_core`] | Argument  | Returns `None`      |
 ///
-/// All of these methods return monotonically increasing UUIDs unless a `timestamp` provided is
+/// All of these methods return monotonically increasing UUIDs unless a timestamp provided is
 /// significantly (by default, ten seconds or more) smaller than the one embedded in the
 /// immediately preceding UUID. If such a significant clock rollback is detected, the `generate`
-/// (or_reset) method resets the generator and returns a new UUID based on the given `timestamp`,
+/// (or_reset) method resets the generator and returns a new UUID based on the given timestamp,
 /// while the `or_abort` variants abort and return `None`. The `core` functions offer low-level
 /// primitives.
 ///
@@ -88,7 +88,7 @@ impl<R: rand::RngCore> V7Generator<R> {
         self.generate_or_reset_core(
             time::SystemTime::now()
                 .duration_since(time::UNIX_EPOCH)
-                .expect("clock may have gone backward")
+                .expect("clock may have gone backwards")
                 .as_millis() as u64,
             10_000,
         )
@@ -105,7 +105,7 @@ impl<R: rand::RngCore> V7Generator<R> {
         self.generate_or_abort_core(
             time::SystemTime::now()
                 .duration_since(time::UNIX_EPOCH)
-                .expect("clock may have gone backward")
+                .expect("clock may have gone backwards")
                 .as_millis() as u64,
             10_000,
         )
@@ -172,7 +172,7 @@ impl<R: rand::RngCore> V7Generator<R> {
                 self.counter = self.rng.next_u64() & MAX_COUNTER;
             }
         } else {
-            // abort if clock moves back to unbearable extent
+            // abort if clock went backwards to unbearable extent
             return None;
         }
 
@@ -237,9 +237,9 @@ mod tests_generate_or_reset {
         assert!(prev.as_bytes()[..6] >= ts.to_be_bytes()[2..]);
     }
 
-    /// Breaks increasing order of UUIDs if timestamp moves backward a lot
+    /// Breaks increasing order of UUIDs if timestamp goes backwards a lot
     #[test]
-    fn breaks_increasing_order_of_uuids_if_timestamp_moves_backward_a_lot() {
+    fn breaks_increasing_order_of_uuids_if_timestamp_goes_backwards_a_lot() {
         let ts = 0x0123_4567_89abu64;
         let mut g: V7Generator<ThreadRng> = Default::default();
         let prev = g.generate_or_reset_core(ts, 10_000);
@@ -271,9 +271,9 @@ mod tests_generate_or_abort {
         assert!(prev.as_bytes()[..6] >= ts.to_be_bytes()[2..]);
     }
 
-    /// Returns None if timestamp moves backward a lot
+    /// Returns None if timestamp goes backwards a lot
     #[test]
-    fn returns_none_if_timestamp_moves_backward_a_lot() {
+    fn returns_none_if_timestamp_goes_backwards_a_lot() {
         let ts = 0x0123_4567_89abu64;
         let mut g: V7Generator<ThreadRng> = Default::default();
         let prev = g.generate_or_abort_core(ts, 10_000).unwrap();

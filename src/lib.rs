@@ -47,7 +47,7 @@
 //!
 //! UUIDv7, by design, heavily relies on the system's wall clock to guarantee the
 //! monotonically increasing order of generated IDs. A generator may not be able to
-//! produce a monotonic sequence if the system clock moves back. This library
+//! produce a monotonic sequence if the system clock goes backwards. This library
 //! ignores a clock rollback and freezes the previously used `unix_ts_ms` unless the
 //! clock rollback is considered significant (by default, ten seconds or more). If
 //! such a significant rollback takes place, this library resets the generator and
@@ -88,7 +88,7 @@
 //!
 //! let y = g
 //!     .generate_or_abort_core(custom_unix_ts_ms, 10_000)
-//!     .expect("clock moved back by 10_000 milliseconds or more");
+//!     .expect("clock went backwards by 10_000 milliseconds or more");
 //! println!("{y}");
 //! ```
 

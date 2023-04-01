@@ -84,7 +84,7 @@ impl Uuid {
 impl fmt::Display for Uuid {
     /// Returns the 8-4-4-4-12 canonical hexadecimal string representation.
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.encode())
+        fmt::Display::fmt(self.encode().as_str(), f)
     }
 }
 
