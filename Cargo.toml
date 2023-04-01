@@ -8,7 +8,7 @@ description = "A Rust implementation of the proposed UUID Version 7"
 repository = "https://github.com/LiosK/uuid7-rs"
 
 [dependencies]
-fstr = { version = "0.1", default-features = false }
+fstr = { version = "0.2", default-features = false }
 rand = { version = "0.8", default-features = false }
 serde = { version = "1.0", default-features = false, optional = true }
 uuid = { version = "1", optional = true }
