@@ -168,7 +168,7 @@ mod std_ext {
 
     impl From<Uuid> for String {
         fn from(src: Uuid) -> Self {
-            src.to_string()
+            src.encode().into()
         }
     }
 
