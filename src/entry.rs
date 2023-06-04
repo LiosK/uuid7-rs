@@ -69,9 +69,11 @@ mod unix_fork_safety {
             if pid == last_pid.replace(pid) {
                 false
             } else {
-                // As of rand 0.8.5, up to fifteen u32 values need to be consumed before reseeding;
-                // see rand::rngs::adapter::ReseedingRng docs for details
-                let _: [u32; 15] = rand::random();
+                // As of rand v0.8.5 and rand_chacha v0.3.1, up to 63 `u32` values have to be used
+                // before reseeding after a fork. Note that the `rand::rngs::adapter::ReseedingRng`
+                // doc is wrong as of rand v0.8.5 as it describes the rand_chacha v0.1 behavior.
+                // See https://github.com/rust-random/rand/pull/1317
+                let _: [[u32; 32]; 2] = rand::random();
                 true
             }
         })
