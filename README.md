@@ -13,7 +13,7 @@ println!("{:?}", uuid.as_bytes()); // as 16-byte big-endian array
 let uuid_string: String = uuid7::uuid7().to_string();
 ```
 
-See [draft-ietf-uuidrev-rfc4122bis-03](https://www.ietf.org/archive/id/draft-ietf-uuidrev-rfc4122bis-03.html).
+See [draft-ietf-uuidrev-rfc4122bis-07](https://www.ietf.org/archive/id/draft-ietf-uuidrev-rfc4122bis-07.html).
 
 ## Field and bit layout
 
