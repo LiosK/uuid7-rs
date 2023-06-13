@@ -2,7 +2,7 @@
 //!
 //! ```rust
 //! let uuid = uuid7::uuid7();
-//! println!("{uuid}"); // e.g. "01809424-3e59-7c05-9219-566f82fff672"
+//! println!("{uuid}"); // e.g., "01809424-3e59-7c05-9219-566f82fff672"
 //! println!("{:?}", uuid.as_bytes()); // as 16-byte big-endian array
 //!
 //! let uuid_string: String = uuid7::uuid7().to_string();
@@ -72,7 +72,7 @@
 //!
 //! ```rust
 //! let uuid = uuid7::uuid4();
-//! println!("{uuid}"); // e.g. "2ca4b2ce-6c13-40d4-bccf-37d222820f6f"
+//! println!("{uuid}"); // e.g., "2ca4b2ce-6c13-40d4-bccf-37d222820f6f"
 //! ```
 //!
 //! [`V7Generator`] provides an interface that allows finer control over the various
@@ -96,7 +96,7 @@
 #![cfg_attr(docsrs, feature(doc_cfg))]
 
 mod id;
-pub use id::{ParseError, Uuid};
+pub use id::{ParseError, Uuid, Variant};
 
 mod gen7;
 pub use gen7::V7Generator;

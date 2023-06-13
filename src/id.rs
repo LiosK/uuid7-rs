@@ -79,6 +79,42 @@ impl Uuid {
         }
         unsafe { FStr::from_inner_unchecked(buffer) }
     }
+
+    /// Reports the variant field value of the UUID or, if appropriate, `Nil` or `Max`.
+    ///
+    /// For convenience, this function reports [`Variant::Nil`] or [`Variant::Max`] if `self`
+    /// represents the Nil or Max UUID, although the Nil and Max UUIDs are technically subsumed
+    /// under the variants `0b0` and `0b111`, respectively.
+    pub fn variant(&self) -> Variant {
+        match self.0[8] >> 4 {
+            0b0000..=0b0111 => {
+                if self.0.iter().all(|&e| e == 0x00) {
+                    Variant::Nil
+                } else {
+                    Variant::Var0
+                }
+            }
+            0b1000..=0b1011 => Variant::Var10,
+            0b1100..=0b1101 => Variant::Var110,
+            0b1110..=0b1111 => {
+                if self.0.iter().all(|&e| e == 0xff) {
+                    Variant::Max
+                } else {
+                    Variant::VarReserved
+                }
+            }
+            _ => unreachable!(),
+        }
+    }
+
+    /// Returns the version field value of the UUID or `None` if `self` does not have the variant
+    /// field value of `0b10`.
+    pub fn version(&self) -> Option<u8> {
+        match self.variant() {
+            Variant::Var10 => Some(self.0[6] >> 4),
+            _ => None,
+        }
+    }
 }
 
 impl fmt::Display for Uuid {
@@ -159,6 +195,32 @@ impl fmt::Display for ParseError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "invalid string representation")
     }
+}
+
+/// The reserved UUID variants and the Nil and Max markers.
+///
+/// For convenience, this enum defines the independent Nil and Max variants, although they are
+/// technically subsumed under the variants `0b0` and `0b111`, respectively.
+#[derive(Clone, Debug, Eq, PartialEq, Hash)]
+#[non_exhaustive]
+pub enum Variant {
+    /// The variant `0b0` (NCS), excluding the Nil UUID.
+    Var0,
+
+    /// The variant `0b10` (RFC 4122).
+    Var10,
+
+    /// The variant `0b110` (Microsoft).
+    Var110,
+
+    /// The variant `0b111` reserved for future definitions, excluding the Max UUID.
+    VarReserved,
+
+    /// The Nil UUID, which is technically included in the variant `0b0`.
+    Nil,
+
+    /// The Max UUID, which is technically included in the variant `0b111`.
+    Max,
 }
 
 #[cfg(feature = "std")]
@@ -330,7 +392,7 @@ mod serde_support {
 
 #[cfg(test)]
 mod tests {
-    use super::Uuid;
+    use super::{Uuid, Variant};
 
     /// Returns a collection of prepared cases
     fn prepare_cases() -> &'static [((u64, u16, u64), &'static str)] {
@@ -368,6 +430,8 @@ mod tests {
             assert_eq!(&from_fields.encode().to_string(), text);
             #[cfg(all(feature = "std", feature = "uuid"))]
             assert_eq!(&uuid::Uuid::from(from_fields).to_string(), text);
+            assert_eq!(from_fields.variant(), Variant::Var10);
+            assert_eq!(from_fields.version(), Some(7));
         }
     }
 
@@ -430,6 +494,45 @@ mod tests {
             assert_eq!(uuid::Uuid::from(e).as_bytes(), &<[u8; 16]>::from(e));
             #[cfg(feature = "uuid")]
             assert_eq!(uuid::Uuid::from(e).as_u128(), u128::from(e));
+        }
+    }
+
+    /// Reports variant and version fields
+    #[test]
+    fn reports_variant_and_version_fields() {
+        assert_eq!(Uuid::NIL.variant(), Variant::Nil);
+        assert_eq!(Uuid::NIL.version(), None);
+
+        assert_eq!(Uuid::MAX.variant(), Variant::Max);
+        assert_eq!(Uuid::MAX.version(), None);
+
+        let mut bytes = [42u8; 16];
+        for oct6 in 0..=0xff {
+            bytes[6] = oct6;
+            for oct8 in 0..=0xff {
+                bytes[8] = oct8;
+
+                let e = Uuid::from(bytes);
+                match e.variant() {
+                    Variant::Var0 => {
+                        assert_eq!(oct8 >> 7, 0b0);
+                        assert_eq!(e.version(), None);
+                    }
+                    Variant::Var10 => {
+                        assert_eq!(oct8 >> 6, 0b10);
+                        assert_eq!(e.version(), Some(oct6 >> 4));
+                    }
+                    Variant::Var110 => {
+                        assert_eq!(oct8 >> 5, 0b110);
+                        assert_eq!(e.version(), None);
+                    }
+                    Variant::VarReserved => {
+                        assert_eq!(oct8 >> 5, 0b111);
+                        assert_eq!(e.version(), None);
+                    }
+                    _ => unreachable!(),
+                }
+            }
         }
     }
 }
