@@ -20,7 +20,7 @@ thread_local! {
 ///
 /// ```rust
 /// let uuid = uuid7::uuid7();
-/// println!("{uuid}"); // e.g. "01809424-3e59-7c05-9219-566f82fff672"
+/// println!("{uuid}"); // e.g., "01809424-3e59-7c05-9219-566f82fff672"
 /// println!("{:?}", uuid.as_bytes()); // as 16-byte big-endian array
 ///
 /// let uuid_string: String = uuid7::uuid7().to_string();
@@ -42,7 +42,7 @@ pub fn uuid7() -> Uuid {
 ///
 /// ```rust
 /// let uuid = uuid7::uuid4();
-/// println!("{uuid}"); // e.g. "2ca4b2ce-6c13-40d4-bccf-37d222820f6f"
+/// println!("{uuid}"); // e.g., "2ca4b2ce-6c13-40d4-bccf-37d222820f6f"
 /// ```
 #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
 pub fn uuid4() -> Uuid {
@@ -90,6 +90,7 @@ mod unix_fork_safety {
 #[cfg(test)]
 mod tests_v7 {
     use super::uuid7;
+    use crate::Variant;
 
     const N_SAMPLES: usize = 100_000;
     thread_local!(static SAMPLES: Vec<String> = (0..N_SAMPLES).map(|_| uuid7().into()).collect());
@@ -199,11 +200,22 @@ mod tests_v7 {
             assert!((p - 0.5).abs() < margin, "random bit {i}: {p}");
         }
     }
+
+    /// Sets correct variant and version bits
+    #[test]
+    fn sets_correct_variant_and_version_bits() {
+        for _ in 0..1_000 {
+            let e = uuid7();
+            assert_eq!(e.variant(), Variant::Var10);
+            assert_eq!(e.version(), Some(7));
+        }
+    }
 }
 
 #[cfg(test)]
 mod tests_v4 {
     use super::uuid4;
+    use crate::Variant;
 
     const N_SAMPLES: usize = 100_000;
     thread_local!(static SAMPLES: Vec<String> = (0..N_SAMPLES).map(|_| uuid4().into()).collect());
@@ -265,6 +277,16 @@ mod tests_v4 {
         for i in (0..48).chain(52..64).chain(66..128) {
             let p = bins[i] as f64 / N_SAMPLES as f64;
             assert!((p - 0.5).abs() < margin, "random bit {i}: {p}");
+        }
+    }
+
+    /// Sets correct variant and version bits
+    #[test]
+    fn sets_correct_variant_and_version_bits() {
+        for _ in 0..1_000 {
+            let e = uuid4();
+            assert_eq!(e.variant(), Variant::Var10);
+            assert_eq!(e.version(), Some(4));
         }
     }
 }
