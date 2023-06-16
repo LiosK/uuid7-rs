@@ -88,7 +88,7 @@ impl Uuid {
     pub fn variant(&self) -> Variant {
         match self.0[8] >> 4 {
             0b0000..=0b0111 => {
-                if self.0.iter().all(|&e| e == 0x00) {
+                if self == &Self::NIL {
                     Variant::Nil
                 } else {
                     Variant::Var0
@@ -97,7 +97,7 @@ impl Uuid {
             0b1000..=0b1011 => Variant::Var10,
             0b1100..=0b1101 => Variant::Var110,
             0b1110..=0b1111 => {
-                if self.0.iter().all(|&e| e == 0xff) {
+                if self == &Self::MAX {
                     Variant::Max
                 } else {
                     Variant::VarReserved
