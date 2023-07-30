@@ -57,9 +57,11 @@
 //!
 //! Default features:
 //!
-//! - `std` enables the primary [`uuid7()`] function. Without `std`, this crate
-//!   provides limited functionality available under `no_std` environments.
-//! - `global_gen` (implies `std`) TODO
+//! - `std` integrates the library with, among others, the system clock to draw
+//!   current timestamps. Without `std`, this crate provides limited functionality
+//!   available under `no_std` environments.
+//! - `global_gen` (implies `std`) enables the primary [`uuid7()`] function and the
+//!   process-wide global generator under the hood.
 //!
 //! Optional features:
 //!

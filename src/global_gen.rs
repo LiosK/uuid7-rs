@@ -7,6 +7,7 @@ use std::sync;
 use crate::{Uuid, V7Generator};
 use inner::GlobalGenInner;
 
+/// Returns the lock handle of process-wide global generator, creating one if none exists.
 fn lock_global_gen() -> sync::MutexGuard<'static, GlobalGenInner> {
     static G: sync::OnceLock<sync::Mutex<GlobalGenInner>> = sync::OnceLock::new();
     G.get_or_init(Default::default)
@@ -16,9 +17,9 @@ fn lock_global_gen() -> sync::MutexGuard<'static, GlobalGenInner> {
 
 /// Generates a UUIDv7 object.
 ///
-/// This function employs a thread-local generator and guarantees the per-thread monotonic order of
+/// This function employs a global generator and guarantees the process-wide monotonic order of
 /// UUIDs generated within the same millisecond. On Unix, this function resets the generator when
-/// the process ID changes (i.e. upon process forks) to prevent collisions across processes.
+/// the process ID changes (i.e., upon process forks) to prevent collisions across processes.
 ///
 /// # Examples
 ///
@@ -53,11 +54,20 @@ mod inner {
 
     use super::V7Generator;
 
+    /// The type alias for the random number generator of the global generator.
+    ///
+    /// The global generator currently employs [`ChaCha12Core`] with [`ReseedingRng`] wrapper to
+    /// emulate the strategy used by [`rand::rngs::ThreadRng`].
+    ///
+    /// [`rand::rngs::ThreadRng`]: https://docs.rs/rand/0.8.5/rand/rngs/struct.ThreadRng.html
+    type GlobalGenRng = ReseedingRng<ChaCha12Core, OsRng>;
+
+    /// A thin wrapper to reset the state when the process ID changes (i.e., upon Unix forks).
     #[derive(Debug)]
     pub struct GlobalGenInner {
         #[cfg(unix)]
         pid: u32,
-        gen: V7Generator<ReseedingRng<ChaCha12Core, OsRng>>,
+        gen: V7Generator<GlobalGenRng>,
     }
 
     impl Default for GlobalGenInner {
@@ -74,7 +84,9 @@ mod inner {
     }
 
     impl GlobalGenInner {
-        pub fn get_mut(&mut self) -> &mut V7Generator<ReseedingRng<ChaCha12Core, OsRng>> {
+        /// Returns a mutable reference to the inner [`V7Generator`] instance, reseting the
+        /// generator state on Unix if the process ID has changed.
+        pub fn get_mut(&mut self) -> &mut V7Generator<GlobalGenRng> {
             #[cfg(unix)]
             if self.pid != std::process::id() {
                 *self = Default::default();
