@@ -129,12 +129,8 @@ impl str::FromStr for Uuid {
 
     /// Creates an object from the 8-4-4-4-12 hexadecimal string representation.
     fn from_str(src: &str) -> Result<Self, Self::Err> {
-        const ERR_LEN: ParseError = ParseError {
-            debug_message: "from_str: invalid length",
-        };
-        const ERR_DIGIT: ParseError = ParseError {
-            debug_message: "from_str: invalid digit",
-        };
+        const ERR_LEN: ParseError = ParseError::length();
+        const ERR_DIGIT: ParseError = ParseError::digit();
         let mut dst = [0u8; 16];
         let mut iter = src.chars();
         for (i, e) in dst.iter_mut().enumerate() {
@@ -142,9 +138,7 @@ impl str::FromStr for Uuid {
             let lo = iter.next().ok_or(ERR_LEN)?.to_digit(16).ok_or(ERR_DIGIT)? as u8;
             *e = (hi << 4) | lo;
             if (i == 3 || i == 5 || i == 7 || i == 9) && iter.next().ok_or(ERR_LEN)? != '-' {
-                return Err(ParseError {
-                    debug_message: "from_str: invalid format",
-                });
+                return Err(ParseError::format());
             }
         }
         if iter.next().is_none() {
@@ -188,12 +182,45 @@ impl From<u128> for Uuid {
 /// An error parsing an invalid string representation of UUID.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ParseError {
-    debug_message: &'static str,
+    kind: ParseErrorKind,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+enum ParseErrorKind {
+    Length,
+    Digit,
+    Format,
+}
+
+impl ParseError {
+    const fn length() -> Self {
+        Self {
+            kind: ParseErrorKind::Length,
+        }
+    }
+
+    const fn digit() -> Self {
+        Self {
+            kind: ParseErrorKind::Digit,
+        }
+    }
+
+    const fn format() -> Self {
+        Self {
+            kind: ParseErrorKind::Format,
+        }
+    }
 }
 
 impl fmt::Display for ParseError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "invalid string representation")
+        use ParseErrorKind::*;
+        write!(f, "could not parse string as UUID: ")?;
+        match self.kind {
+            Length => write!(f, "invalid length"),
+            Digit => write!(f, "invalid digit"),
+            Format => write!(f, "invalid format"),
+        }
     }
 }
 
