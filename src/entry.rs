@@ -2,12 +2,16 @@
 
 #![cfg(feature = "std")]
 
-use crate::{Uuid, V7Generator};
-use rand::rngs::ThreadRng;
-use std::cell::RefCell;
+use std::sync;
 
-thread_local! {
-    static DEFAULT_GENERATOR: RefCell<V7Generator<ThreadRng>> = Default::default();
+use crate::{Uuid, V7Generator};
+use inner::GlobalGenInner;
+
+fn lock_global_gen() -> sync::MutexGuard<'static, GlobalGenInner> {
+    static G: sync::OnceLock<sync::Mutex<GlobalGenInner>> = sync::OnceLock::new();
+    G.get_or_init(Default::default)
+        .lock()
+        .expect("uuid7: could not lock global generator")
 }
 
 /// Generates a UUIDv7 object.
@@ -27,13 +31,7 @@ thread_local! {
 /// ```
 #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
 pub fn uuid7() -> Uuid {
-    DEFAULT_GENERATOR.with(|g| {
-        if unix_fork_safety::reseed_thread_rng_upon_pid_change() {
-            g.replace(Default::default());
-        }
-
-        g.borrow_mut().generate()
-    })
+    lock_global_gen().get_mut().generate()
 }
 
 /// Generates a UUIDv4 object.
@@ -46,46 +44,43 @@ pub fn uuid7() -> Uuid {
 /// ```
 #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
 pub fn uuid4() -> Uuid {
-    DEFAULT_GENERATOR.with(|g| {
-        if unix_fork_safety::reseed_thread_rng_upon_pid_change() {
-            g.replace(Default::default());
-        }
-
-        g.borrow_mut().generate_v4()
-    })
+    lock_global_gen().get_mut().generate_v4()
 }
 
-#[cfg(unix)]
-mod unix_fork_safety {
-    use std::{cell::Cell, process};
+mod inner {
+    use rand::rngs::{adapter::ReseedingRng, OsRng};
+    use rand_chacha::ChaCha12Core;
 
-    thread_local! {
-        static PID: Cell<u32> = Cell::new(process::id());
+    use super::V7Generator;
+
+    #[derive(Debug)]
+    pub struct GlobalGenInner {
+        #[cfg(unix)]
+        pid: u32,
+        gen: V7Generator<ReseedingRng<ChaCha12Core, OsRng>>,
     }
 
-    /// Reseeds ThreadRng immediately when the process ID changes (i.e. upon process forks),
-    /// returning true if ThreadRng is reseeded or false otherwise.
-    pub fn reseed_thread_rng_upon_pid_change() -> bool {
-        PID.with(|last_pid| {
-            let pid = process::id();
-            if pid == last_pid.replace(pid) {
-                false
-            } else {
-                // As of rand v0.8.5 and rand_chacha v0.3.1, up to 63 `u32` values have to be used
-                // before reseeding after a fork. Note that the `rand::rngs::adapter::ReseedingRng`
-                // doc is wrong as of rand v0.8.5 as it describes the rand_chacha v0.1 behavior.
-                // See https://github.com/rust-random/rand/pull/1317
-                let _: [[u32; 32]; 2] = rand::random();
-                true
+    impl Default for GlobalGenInner {
+        fn default() -> Self {
+            use rand::SeedableRng as _;
+            let rng = ChaCha12Core::from_rng(OsRng)
+                .expect("uuid7: could not initialize global generator");
+            Self {
+                #[cfg(unix)]
+                pid: std::process::id(),
+                gen: V7Generator::new(ReseedingRng::new(rng, 1024 * 64, OsRng)),
             }
-        })
+        }
     }
-}
 
-#[cfg(not(unix))]
-mod unix_fork_safety {
-    pub const fn reseed_thread_rng_upon_pid_change() -> bool {
-        false
+    impl GlobalGenInner {
+        pub fn get_mut(&mut self) -> &mut V7Generator<ReseedingRng<ChaCha12Core, OsRng>> {
+            #[cfg(unix)]
+            if self.pid != std::process::id() {
+                *self = Default::default();
+            }
+            &mut self.gen
+        }
     }
 }
 
