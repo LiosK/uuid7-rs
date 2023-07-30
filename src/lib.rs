@@ -49,7 +49,7 @@
 //! monotonically increasing order of generated IDs. A generator may not be able to
 //! produce a monotonic sequence if the system clock goes backwards. This library
 //! ignores a clock rollback and freezes the previously used `unix_ts_ms` unless the
-//! clock rollback is considered significant (by default, ten seconds or more). If
+//! clock rollback is considered significant (by default, more than ten seconds). If
 //! such a significant rollback takes place, this library resets the generator and
 //! thus breaks the monotonic order of generated IDs.
 //!
@@ -92,7 +92,7 @@
 //!
 //! let y = g
 //!     .generate_or_abort_core(custom_unix_ts_ms, 10_000)
-//!     .expect("clock went backwards by 10_000 milliseconds or more");
+//!     .expect("clock went backwards by more than 10_000 milliseconds");
 //! println!("{y}");
 //! ```
 
