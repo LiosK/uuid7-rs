@@ -46,11 +46,13 @@ pub fn uuid7() -> Uuid {
 /// ```
 #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
 pub fn uuid4() -> Uuid {
-    unix_fork_safety::reseed_thread_rng_upon_pid_change();
-    let mut bytes: [u8; 16] = rand::random();
-    bytes[6] = 0x40 | (bytes[6] >> 4);
-    bytes[8] = 0x80 | (bytes[8] >> 2);
-    Uuid::from(bytes)
+    DEFAULT_GENERATOR.with(|g| {
+        if unix_fork_safety::reseed_thread_rng_upon_pid_change() {
+            g.replace(Default::default());
+        }
+
+        g.borrow_mut().generate_v4()
+    })
 }
 
 #[cfg(unix)]

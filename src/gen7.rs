@@ -182,6 +182,16 @@ impl<R: rand::RngCore> V7Generator<R> {
             ((self.counter & 0x3fff_ffff) << 32) | self.rng.next_u32() as u64,
         ))
     }
+
+    /// Generates a new UUIDv4 object utilizing the random number generator inside.
+    #[cfg(feature = "std")]
+    pub(crate) fn generate_v4(&mut self) -> Uuid {
+        let mut bytes = [0u8; 16];
+        self.rng.fill_bytes(&mut bytes);
+        bytes[6] = 0x40 | (bytes[6] >> 4);
+        bytes[8] = 0x80 | (bytes[8] >> 2);
+        Uuid::from(bytes)
+    }
 }
 
 /// Supports operations as an infinite iterator that produces a new UUIDv7 object for each call of
