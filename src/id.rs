@@ -428,7 +428,7 @@ mod tests {
             assert_eq!(&from_fields.to_string(), text);
             #[cfg(feature = "std")]
             assert_eq!(&from_fields.encode().to_string(), text);
-            #[cfg(all(feature = "std", feature = "uuid"))]
+            #[cfg(all(feature = "global_gen", feature = "uuid"))]
             assert_eq!(&uuid::Uuid::from(from_fields).to_string(), text);
             assert_eq!(from_fields.variant(), Variant::Var10);
             assert_eq!(from_fields.version(), Some(7));

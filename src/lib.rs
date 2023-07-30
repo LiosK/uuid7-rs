@@ -59,12 +59,14 @@
 //!
 //! - `std` enables the primary [`uuid7()`] function. Without `std`, this crate
 //!   provides limited functionality available under `no_std` environments.
+//! - `global_gen` (implies `std`) TODO
 //!
 //! Optional features:
 //!
 //! - `serde` enables the serialization and deserialization of [`Uuid`] objects.
-//! - `uuid` (together with `std`) enables the [`new_v7()`] function that returns the
-//!   popular [uuid](https://crates.io/crates/uuid) crate's [`Uuid`](uuid::Uuid) objects.
+//! - `uuid` (together with `global_gen`) enables the [`new_v7()`] function that
+//!   returns the popular [uuid](https://crates.io/crates/uuid) crate's [`Uuid`](uuid::Uuid)
+//!   objects.
 //!
 //! # Other functionality
 //!
@@ -101,13 +103,13 @@ pub use id::{ParseError, Uuid, Variant};
 mod gen7;
 pub use gen7::V7Generator;
 
-mod entry;
-#[cfg(feature = "std")]
-pub use entry::{uuid4, uuid7};
+mod global_gen;
+#[cfg(feature = "global_gen")]
+pub use global_gen::{uuid4, uuid7};
 
 /// Generates a UUIDv7 and returns it as an instance of [`uuid::Uuid`].
-#[cfg(all(feature = "std", feature = "uuid"))]
-#[cfg_attr(docsrs, doc(cfg(all(feature = "std", feature = "uuid"))))]
+#[cfg(all(feature = "global_gen", feature = "uuid"))]
+#[cfg_attr(docsrs, doc(cfg(all(feature = "global_gen", feature = "uuid"))))]
 pub fn new_v7() -> uuid::Uuid {
     uuid7().into()
 }

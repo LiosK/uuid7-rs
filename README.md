@@ -64,12 +64,14 @@ Default features:
 
 - `std` enables the primary `uuid7()` function. Without `std`, this crate
   provides limited functionality available under `no_std` environments.
+- `global_gen` (implies `std`) TODO
 
 Optional features:
 
 - `serde` enables the serialization and deserialization of `Uuid` objects.
-- `uuid` (together with `std`) enables the `new_v7()` function that returns the
-  popular [uuid](https://crates.io/crates/uuid) crate's `Uuid` objects.
+- `uuid` (together with `global_gen`) enables the `new_v7()` function that
+  returns the popular [uuid](https://crates.io/crates/uuid) crate's `Uuid`
+  objects.
 
 ## Other functionality
 

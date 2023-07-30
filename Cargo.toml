@@ -20,8 +20,9 @@ regex = { version = "1.8", default-features = false, features = ["std"] }
 serde_test = "1.0"
 
 [features]
-default = ["std"]
-std = ["fstr/std", "rand/std", "rand_chacha"]
+default = ["global_gen"]
+std = ["fstr/std"]
+global_gen = ["std", "rand/std", "rand_chacha"]
 
 [package.metadata.docs.rs]
 # RUSTDOCFLAGS="--cfg docsrs" cargo +nightly doc --all-features --no-deps --open

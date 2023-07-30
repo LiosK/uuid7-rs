@@ -184,7 +184,7 @@ impl<R: rand::RngCore> V7Generator<R> {
     }
 
     /// Generates a new UUIDv4 object utilizing the random number generator inside.
-    #[cfg(feature = "std")]
+    #[cfg(feature = "global_gen")]
     pub(crate) fn generate_v4(&mut self) -> Uuid {
         let mut bytes = [0u8; 16];
         self.rng.fill_bytes(&mut bytes);
