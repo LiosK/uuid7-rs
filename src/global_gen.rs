@@ -1,20 +1,25 @@
 //! Default generator and entry point functions
 
-#![cfg(feature = "std")]
+#![cfg(feature = "global_gen")]
+
+use std::sync;
 
 use crate::{Uuid, V7Generator};
-use rand::rngs::ThreadRng;
-use std::cell::RefCell;
+use inner::GlobalGenInner;
 
-thread_local! {
-    static DEFAULT_GENERATOR: RefCell<V7Generator<ThreadRng>> = Default::default();
+/// Returns the lock handle of process-wide global generator, creating one if none exists.
+fn lock_global_gen() -> sync::MutexGuard<'static, GlobalGenInner> {
+    static G: sync::OnceLock<sync::Mutex<GlobalGenInner>> = sync::OnceLock::new();
+    G.get_or_init(Default::default)
+        .lock()
+        .expect("uuid7: could not lock global generator")
 }
 
 /// Generates a UUIDv7 object.
 ///
-/// This function employs a thread-local generator and guarantees the per-thread monotonic order of
+/// This function employs a global generator and guarantees the process-wide monotonic order of
 /// UUIDs generated within the same millisecond. On Unix, this function resets the generator when
-/// the process ID changes (i.e. upon process forks) to prevent collisions across processes.
+/// the process ID changes (i.e., upon process forks) to prevent collisions across processes.
 ///
 /// # Examples
 ///
@@ -25,15 +30,9 @@ thread_local! {
 ///
 /// let uuid_string: String = uuid7::uuid7().to_string();
 /// ```
-#[cfg_attr(docsrs, doc(cfg(feature = "std")))]
+#[cfg_attr(docsrs, doc(cfg(feature = "global_gen")))]
 pub fn uuid7() -> Uuid {
-    DEFAULT_GENERATOR.with(|g| {
-        if unix_fork_safety::reseed_thread_rng_upon_pid_change() {
-            g.replace(Default::default());
-        }
-
-        g.borrow_mut().generate()
-    })
+    lock_global_gen().get_mut().generate()
 }
 
 /// Generates a UUIDv4 object.
@@ -44,46 +43,56 @@ pub fn uuid7() -> Uuid {
 /// let uuid = uuid7::uuid4();
 /// println!("{uuid}"); // e.g., "2ca4b2ce-6c13-40d4-bccf-37d222820f6f"
 /// ```
-#[cfg_attr(docsrs, doc(cfg(feature = "std")))]
+#[cfg_attr(docsrs, doc(cfg(feature = "global_gen")))]
 pub fn uuid4() -> Uuid {
-    unix_fork_safety::reseed_thread_rng_upon_pid_change();
-    let mut bytes: [u8; 16] = rand::random();
-    bytes[6] = 0x40 | (bytes[6] >> 4);
-    bytes[8] = 0x80 | (bytes[8] >> 2);
-    Uuid::from(bytes)
+    lock_global_gen().get_mut().generate_v4()
 }
 
-#[cfg(unix)]
-mod unix_fork_safety {
-    use std::{cell::Cell, process};
+mod inner {
+    use rand::rngs::{adapter::ReseedingRng, OsRng};
+    use rand_chacha::ChaCha12Core;
 
-    thread_local! {
-        static PID: Cell<u32> = Cell::new(process::id());
+    use super::V7Generator;
+
+    /// The type alias for the random number generator of the global generator.
+    ///
+    /// The global generator currently employs [`ChaCha12Core`] with [`ReseedingRng`] wrapper to
+    /// emulate the strategy used by [`rand::rngs::ThreadRng`].
+    ///
+    /// [`rand::rngs::ThreadRng`]: https://docs.rs/rand/0.8.5/rand/rngs/struct.ThreadRng.html
+    type GlobalGenRng = ReseedingRng<ChaCha12Core, OsRng>;
+
+    /// A thin wrapper to reset the state when the process ID changes (i.e., upon Unix forks).
+    #[derive(Debug)]
+    pub struct GlobalGenInner {
+        #[cfg(unix)]
+        pid: u32,
+        gen: V7Generator<GlobalGenRng>,
     }
 
-    /// Reseeds ThreadRng immediately when the process ID changes (i.e. upon process forks),
-    /// returning true if ThreadRng is reseeded or false otherwise.
-    pub fn reseed_thread_rng_upon_pid_change() -> bool {
-        PID.with(|last_pid| {
-            let pid = process::id();
-            if pid == last_pid.replace(pid) {
-                false
-            } else {
-                // As of rand v0.8.5 and rand_chacha v0.3.1, up to 63 `u32` values have to be used
-                // before reseeding after a fork. Note that the `rand::rngs::adapter::ReseedingRng`
-                // doc is wrong as of rand v0.8.5 as it describes the rand_chacha v0.1 behavior.
-                // See https://github.com/rust-random/rand/pull/1317
-                let _: [[u32; 32]; 2] = rand::random();
-                true
+    impl Default for GlobalGenInner {
+        fn default() -> Self {
+            use rand::SeedableRng as _;
+            let rng = ChaCha12Core::from_rng(OsRng)
+                .expect("uuid7: could not initialize global generator");
+            Self {
+                #[cfg(unix)]
+                pid: std::process::id(),
+                gen: V7Generator::new(ReseedingRng::new(rng, 1024 * 64, OsRng)),
             }
-        })
+        }
     }
-}
 
-#[cfg(not(unix))]
-mod unix_fork_safety {
-    pub const fn reseed_thread_rng_upon_pid_change() -> bool {
-        false
+    impl GlobalGenInner {
+        /// Returns a mutable reference to the inner [`V7Generator`] instance, reseting the
+        /// generator state on Unix if the process ID has changed.
+        pub fn get_mut(&mut self) -> &mut V7Generator<GlobalGenRng> {
+            #[cfg(unix)]
+            if self.pid != std::process::id() {
+                *self = Default::default();
+            }
+            &mut self.gen
+        }
     }
 }
 
@@ -209,6 +218,30 @@ mod tests_v7 {
             assert_eq!(e.variant(), Variant::Var10);
             assert_eq!(e.version(), Some(7));
         }
+    }
+
+    /// Generates no IDs sharing same timestamp and counters under multithreading
+    #[test]
+    fn generates_no_ids_sharing_same_timestamp_and_counters_under_multithreading() {
+        use std::{collections::HashSet, sync::mpsc, thread};
+
+        let (tx, rx) = mpsc::channel();
+        for _ in 0..4 {
+            let tx = tx.clone();
+            thread::spawn(move || {
+                for _ in 0..10_000 {
+                    tx.send(uuid7()).unwrap();
+                }
+            });
+        }
+        drop(tx);
+
+        let mut s = HashSet::new();
+        while let Ok(e) = rx.recv() {
+            s.insert(<[u8; 12]>::try_from(&e.as_bytes()[..12]).unwrap());
+        }
+
+        assert_eq!(s.len(), 4 * 10_000);
     }
 }
 

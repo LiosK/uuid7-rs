@@ -18,22 +18,17 @@ use crate::Uuid;
 /// use uuid7::V7Generator;
 ///
 /// let g = sync::Arc::new(sync::Mutex::new(V7Generator::new(OsRng)));
-/// let handle = {
-///     let g = sync::Arc::clone(&g);
-///     thread::spawn(move || {
-///         for _ in 0..8 {
-///             println!("{} by child", g.lock().unwrap().generate());
-///             thread::yield_now();
-///         }
-///     })
-/// };
-///
-/// for _ in 0..8 {
-///     println!("{} by parent", g.lock().unwrap().generate());
-///     thread::yield_now();
-/// }
-///
-/// handle.join().unwrap();
+/// thread::scope(|s| {
+///     for i in 0..4 {
+///         let g = sync::Arc::clone(&g);
+///         s.spawn(move || {
+///             for _ in 0..8 {
+///                 println!("{} by thread {}", g.lock().unwrap().generate(), i);
+///                 thread::yield_now();
+///             }
+///         });
+///     }
+/// });
 /// ```
 ///
 /// # Generator functions
@@ -48,7 +43,7 @@ use crate::Uuid;
 /// | [`generate_or_abort_core`] | Argument  | Returns `None`      |
 ///
 /// All of these methods return monotonically increasing UUIDs unless a timestamp provided is
-/// significantly (by default, ten seconds or more) smaller than the one embedded in the
+/// significantly (by default, more than ten seconds) smaller than the one embedded in the
 /// immediately preceding UUID. If such a significant clock rollback is detected, the `generate`
 /// (or_reset) method resets the generator and returns a new UUID based on the given timestamp,
 /// while the `or_abort` variants abort and return `None`. The `core` functions offer low-level
@@ -163,7 +158,7 @@ impl<R: rand::RngCore> V7Generator<R> {
         if unix_ts_ms > self.timestamp {
             self.timestamp = unix_ts_ms;
             self.counter = self.rng.next_u64() & MAX_COUNTER;
-        } else if unix_ts_ms + rollback_allowance > self.timestamp {
+        } else if unix_ts_ms + rollback_allowance >= self.timestamp {
             // go on with previous timestamp if new one is not much smaller
             self.counter += 1;
             if self.counter > MAX_COUNTER {
@@ -181,6 +176,16 @@ impl<R: rand::RngCore> V7Generator<R> {
             (self.counter >> 30) as u16,
             ((self.counter & 0x3fff_ffff) << 32) | self.rng.next_u32() as u64,
         ))
+    }
+
+    /// Generates a new UUIDv4 object utilizing the random number generator inside.
+    #[cfg(feature = "global_gen")]
+    pub(crate) fn generate_v4(&mut self) -> Uuid {
+        let mut bytes = [0u8; 16];
+        self.rng.fill_bytes(&mut bytes);
+        bytes[6] = 0x40 | (bytes[6] >> 4);
+        bytes[8] = 0x80 | (bytes[8] >> 2);
+        Uuid::from(bytes)
     }
 }
 
@@ -242,11 +247,20 @@ mod tests_generate_or_reset {
     fn breaks_increasing_order_of_uuids_if_timestamp_goes_backwards_a_lot() {
         let ts = 0x0123_4567_89abu64;
         let mut g: V7Generator<ThreadRng> = Default::default();
-        let prev = g.generate_or_reset_core(ts, 10_000);
+        let mut prev = g.generate_or_reset_core(ts, 10_000);
         assert_eq!(prev.as_bytes()[..6], ts.to_be_bytes()[2..]);
-        let curr = g.generate_or_reset_core(ts - 10_000, 10_000);
+
+        let mut curr = g.generate_or_reset_core(ts - 10_000, 10_000);
+        assert!(prev < curr);
+
+        prev = curr;
+        curr = g.generate_or_reset_core(ts - 10_001, 10_000);
         assert!(prev > curr);
-        assert_eq!(curr.as_bytes()[..6], (ts - 10_000).to_be_bytes()[2..]);
+        assert_eq!(curr.as_bytes()[..6], (ts - 10_001).to_be_bytes()[2..]);
+
+        prev = curr;
+        curr = g.generate_or_reset_core(ts - 10_002, 10_000);
+        assert!(prev < curr);
     }
 }
 
@@ -278,7 +292,14 @@ mod tests_generate_or_abort {
         let mut g: V7Generator<ThreadRng> = Default::default();
         let prev = g.generate_or_abort_core(ts, 10_000).unwrap();
         assert_eq!(prev.as_bytes()[..6], ts.to_be_bytes()[2..]);
-        let curr = g.generate_or_abort_core(ts - 10_000, 10_000);
+
+        let mut curr = g.generate_or_abort_core(ts - 10_000, 10_000);
+        assert!(prev < curr.unwrap());
+
+        curr = g.generate_or_abort_core(ts - 10_001, 10_000);
+        assert!(curr.is_none());
+
+        curr = g.generate_or_abort_core(ts - 10_002, 10_000);
         assert!(curr.is_none());
     }
 }

@@ -8,7 +8,7 @@
 //! let uuid_string: String = uuid7::uuid7().to_string();
 //! ```
 //!
-//! See [draft-ietf-uuidrev-rfc4122bis-07](https://www.ietf.org/archive/id/draft-ietf-uuidrev-rfc4122bis-07.html).
+//! See [draft-ietf-uuidrev-rfc4122bis-08](https://www.ietf.org/archive/id/draft-ietf-uuidrev-rfc4122bis-08.html).
 //!
 //! # Field and bit layout
 //!
@@ -49,7 +49,7 @@
 //! monotonically increasing order of generated IDs. A generator may not be able to
 //! produce a monotonic sequence if the system clock goes backwards. This library
 //! ignores a clock rollback and freezes the previously used `unix_ts_ms` unless the
-//! clock rollback is considered significant (by default, ten seconds or more). If
+//! clock rollback is considered significant (by default, more than ten seconds). If
 //! such a significant rollback takes place, this library resets the generator and
 //! thus breaks the monotonic order of generated IDs.
 //!
@@ -57,14 +57,18 @@
 //!
 //! Default features:
 //!
-//! - `std` enables the primary [`uuid7()`] function. Without `std`, this crate
-//!   provides limited functionality available under `no_std` environments.
+//! - `std` integrates the library with, among others, the system clock to draw
+//!   current timestamps. Without `std`, this crate provides limited functionality
+//!   available under `no_std` environments.
+//! - `global_gen` (implies `std`) enables the primary [`uuid7()`] function and the
+//!   process-wide global generator under the hood.
 //!
 //! Optional features:
 //!
 //! - `serde` enables the serialization and deserialization of [`Uuid`] objects.
-//! - `uuid` (together with `std`) enables the [`new_v7()`] function that returns the
-//!   popular [uuid](https://crates.io/crates/uuid) crate's [`Uuid`](uuid::Uuid) objects.
+//! - `uuid` (together with `global_gen`) enables the [`new_v7()`] function that
+//!   returns the popular [uuid](https://crates.io/crates/uuid) crate's [`Uuid`](uuid::Uuid)
+//!   objects.
 //!
 //! # Other functionality
 //!
@@ -88,7 +92,7 @@
 //!
 //! let y = g
 //!     .generate_or_abort_core(custom_unix_ts_ms, 10_000)
-//!     .expect("clock went backwards by 10_000 milliseconds or more");
+//!     .expect("clock went backwards by more than 10_000 milliseconds");
 //! println!("{y}");
 //! ```
 
@@ -101,13 +105,13 @@ pub use id::{ParseError, Uuid, Variant};
 mod gen7;
 pub use gen7::V7Generator;
 
-mod entry;
-#[cfg(feature = "std")]
-pub use entry::{uuid4, uuid7};
+mod global_gen;
+#[cfg(feature = "global_gen")]
+pub use global_gen::{uuid4, uuid7};
 
 /// Generates a UUIDv7 and returns it as an instance of [`uuid::Uuid`].
-#[cfg(all(feature = "std", feature = "uuid"))]
-#[cfg_attr(docsrs, doc(cfg(all(feature = "std", feature = "uuid"))))]
+#[cfg(all(feature = "global_gen", feature = "uuid"))]
+#[cfg_attr(docsrs, doc(cfg(all(feature = "global_gen", feature = "uuid"))))]
 pub fn new_v7() -> uuid::Uuid {
     uuid7().into()
 }

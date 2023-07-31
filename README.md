@@ -13,7 +13,7 @@ println!("{:?}", uuid.as_bytes()); // as 16-byte big-endian array
 let uuid_string: String = uuid7::uuid7().to_string();
 ```
 
-See [draft-ietf-uuidrev-rfc4122bis-07](https://www.ietf.org/archive/id/draft-ietf-uuidrev-rfc4122bis-07.html).
+See [draft-ietf-uuidrev-rfc4122bis-08](https://www.ietf.org/archive/id/draft-ietf-uuidrev-rfc4122bis-08.html).
 
 ## Field and bit layout
 
@@ -54,7 +54,7 @@ UUIDv7, by design, heavily relies on the system's wall clock to guarantee the
 monotonically increasing order of generated IDs. A generator may not be able to
 produce a monotonic sequence if the system clock goes backwards. This library
 ignores a clock rollback and freezes the previously used `unix_ts_ms` unless the
-clock rollback is considered significant (by default, ten seconds or more). If
+clock rollback is considered significant (by default, more than ten seconds). If
 such a significant rollback takes place, this library resets the generator and
 thus breaks the monotonic order of generated IDs.
 
@@ -62,14 +62,18 @@ thus breaks the monotonic order of generated IDs.
 
 Default features:
 
-- `std` enables the primary `uuid7()` function. Without `std`, this crate
-  provides limited functionality available under `no_std` environments.
+- `std` integrates the library with, among others, the system clock to draw
+  current timestamps. Without `std`, this crate provides limited functionality
+  available under `no_std` environments.
+- `global_gen` (implies `std`) enables the primary `uuid7()` function and the
+  process-wide global generator under the hood.
 
 Optional features:
 
 - `serde` enables the serialization and deserialization of `Uuid` objects.
-- `uuid` (together with `std`) enables the `new_v7()` function that returns the
-  popular [uuid](https://crates.io/crates/uuid) crate's `Uuid` objects.
+- `uuid` (together with `global_gen`) enables the `new_v7()` function that
+  returns the popular [uuid](https://crates.io/crates/uuid) crate's `Uuid`
+  objects.
 
 ## Other functionality
 
@@ -93,7 +97,7 @@ println!("{x}");
 
 let y = g
     .generate_or_abort_core(custom_unix_ts_ms, 10_000)
-    .expect("clock went backwards by 10_000 milliseconds or more");
+    .expect("clock went backwards by more than 10_000 milliseconds");
 println!("{y}");
 ```
 
