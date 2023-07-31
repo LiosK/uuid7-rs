@@ -18,22 +18,17 @@ use crate::Uuid;
 /// use uuid7::V7Generator;
 ///
 /// let g = sync::Arc::new(sync::Mutex::new(V7Generator::new(OsRng)));
-/// let handle = {
-///     let g = sync::Arc::clone(&g);
-///     thread::spawn(move || {
-///         for _ in 0..8 {
-///             println!("{} by child", g.lock().unwrap().generate());
-///             thread::yield_now();
-///         }
-///     })
-/// };
-///
-/// for _ in 0..8 {
-///     println!("{} by parent", g.lock().unwrap().generate());
-///     thread::yield_now();
-/// }
-///
-/// handle.join().unwrap();
+/// thread::scope(|s| {
+///     for i in 0..4 {
+///         let g = sync::Arc::clone(&g);
+///         s.spawn(move || {
+///             for _ in 0..8 {
+///                 println!("{} by thread {}", g.lock().unwrap().generate(), i);
+///                 thread::yield_now();
+///             }
+///         });
+///     }
+/// });
 /// ```
 ///
 /// # Generator functions
