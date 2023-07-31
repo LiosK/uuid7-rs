@@ -219,6 +219,30 @@ mod tests_v7 {
             assert_eq!(e.version(), Some(7));
         }
     }
+
+    /// Generates no IDs sharing same timestamp and counters under multithreading
+    #[test]
+    fn generates_no_ids_sharing_same_timestamp_and_counters_under_multithreading() {
+        use std::{collections::HashSet, sync::mpsc, thread};
+
+        let (tx, rx) = mpsc::channel();
+        for _ in 0..4 {
+            let tx = tx.clone();
+            thread::spawn(move || {
+                for _ in 0..10_000 {
+                    tx.send(uuid7()).unwrap();
+                }
+            });
+        }
+        drop(tx);
+
+        let mut s = HashSet::new();
+        while let Ok(e) = rx.recv() {
+            s.insert(<[u8; 12]>::try_from(&e.as_bytes()[..12]).unwrap());
+        }
+
+        assert_eq!(s.len(), 4 * 10_000);
+    }
 }
 
 #[cfg(test)]
