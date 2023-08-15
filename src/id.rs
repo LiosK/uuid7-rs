@@ -69,7 +69,7 @@ impl Uuid {
         let mut w = 0;
         while r < 16 {
             let e = self.0[r] as usize;
-            buffer[w + 0] = DIGITS[e >> 4];
+            buffer[w] = DIGITS[e >> 4];
             buffer[w + 1] = DIGITS[e & 15];
             if r == 3 || r == 5 || r == 7 || r == 9 {
                 buffer[w + 2] = b'-';
@@ -106,7 +106,7 @@ impl Uuid {
         let mut w = 0;
         while r < 16 {
             let e = self.0[r] as usize;
-            buffer[w + 0] = DIGITS[e >> 4];
+            buffer[w] = DIGITS[e >> 4];
             buffer[w + 1] = DIGITS[e & 15];
             r += 1;
             w += 2;
@@ -165,23 +165,37 @@ impl str::FromStr for Uuid {
 
     /// Creates an object from the 8-4-4-4-12 hexadecimal string representation.
     fn from_str(src: &str) -> Result<Self, Self::Err> {
-        const ERR_LEN: ParseError = ParseError::length();
+        let (offset, is_hyphenated) = match src.len() {
+            32 => Ok((0, false)),
+            36 => Ok((0, true)),
+            38 => match src.starts_with('{') && src.ends_with('}') {
+                true => Ok((1, true)),
+                _ => Err(ParseError::format()),
+            },
+            45 => match src.get(..9).map(|h| h.eq_ignore_ascii_case("urn:uuid:")) {
+                Some(true) => Ok((9, true)),
+                _ => Err(ParseError::format()),
+            },
+            _ => Err(ParseError::length()),
+        }?;
+
         const ERR_DIGIT: ParseError = ParseError::digit();
         let mut dst = [0u8; 16];
-        let mut iter = src.chars();
+        let mut iter = src.chars().skip(offset);
         for (i, e) in dst.iter_mut().enumerate() {
-            let hi = iter.next().ok_or(ERR_LEN)?.to_digit(16).ok_or(ERR_DIGIT)? as u8;
-            let lo = iter.next().ok_or(ERR_LEN)?.to_digit(16).ok_or(ERR_DIGIT)? as u8;
+            let hi = iter.next().unwrap().to_digit(16).ok_or(ERR_DIGIT)? as u8;
+            let lo = iter.next().unwrap().to_digit(16).ok_or(ERR_DIGIT)? as u8;
             *e = (hi << 4) | lo;
-            if (i == 3 || i == 5 || i == 7 || i == 9) && iter.next().ok_or(ERR_LEN)? != '-' {
+            if is_hyphenated
+                && (i == 3 || i == 5 || i == 7 || i == 9)
+                && iter.next().unwrap() != '-'
+            {
                 return Err(ParseError::format());
             }
         }
-        if iter.next().is_none() {
-            Ok(Self(dst))
-        } else {
-            Err(ERR_LEN)
-        }
+        // `to_digit()` or `!= '-'` fails if `src` includes non-ASCII char
+        debug_assert!(src.is_ascii());
+        Ok(Self(dst))
     }
 }
 
@@ -580,22 +594,37 @@ mod tests {
     /// Encodes and decodes prepared cases correctly
     #[test]
     fn encodes_and_decodes_prepared_cases_correctly() {
-        for (fs, text, hex) in prepare_cases() {
+        for &(fs, text, hex) in prepare_cases() {
             let from_fields = Uuid::from_fields_v7(fs.0, fs.1, fs.2);
+            assert_eq!(Ok(from_fields), hex.parse());
+            assert_eq!(Ok(from_fields), hex.to_uppercase().parse());
             assert_eq!(Ok(from_fields), text.parse());
             assert_eq!(Ok(from_fields), text.to_uppercase().parse());
-            assert_eq!(&from_fields.encode() as &str, *text);
-            assert_eq!(&from_fields.encode_hex() as &str, *hex);
-            #[cfg(feature = "std")]
-            assert_eq!(&from_fields.to_string(), text);
-            #[cfg(feature = "std")]
-            assert_eq!(&from_fields.encode().to_string(), text);
-            #[cfg(feature = "std")]
-            assert_eq!(&from_fields.encode_hex().to_string(), hex);
+
+            assert_eq!(&from_fields.encode() as &str, text);
+            assert_eq!(&from_fields.encode_hex() as &str, hex);
             #[cfg(all(feature = "global_gen", feature = "uuid"))]
             assert_eq!(&uuid::Uuid::from(from_fields).to_string(), text);
             assert_eq!(from_fields.variant(), Variant::Var10);
             assert_eq!(from_fields.version(), Some(7));
+
+            #[cfg(feature = "std")]
+            {
+                assert_eq!(Ok(from_fields), format!("{{{}}}", text).parse());
+                assert_eq!(
+                    Ok(from_fields),
+                    format!("{{{}}}", text).to_uppercase().parse()
+                );
+                assert_eq!(Ok(from_fields), format!("urn:uuid:{}", text).parse());
+                assert_eq!(
+                    Ok(from_fields),
+                    format!("urn:uuid:{}", text).to_uppercase().parse()
+                );
+
+                assert_eq!(&from_fields.to_string(), text);
+                assert_eq!(&from_fields.encode().to_string(), text);
+                assert_eq!(&from_fields.encode_hex().to_string(), hex);
+            }
         }
     }
 
@@ -611,12 +640,22 @@ mod tests {
             "-0180a8f0-5b84-7438-ab50-f06508df4c2d",
             "+180a8f0-5b84-7438-ab50-f066aa10a367",
             "-180a8f0-5b84-7438-ab50-f067cdce1d69",
-            "0180a8f05b847438ab50f068decfbfd7",
             "0180a8f0-5b847438-ab50-f06991838802",
-            "{0180a8f0-5b84-7438-ab50-f06ac2e5e082}",
             "0180a8f0-5b84-74 8-ab50-f06bed27bdc7",
             "0180a8g0-5b84-7438-ab50-f06c91175b8a",
             "0180a8f0-5b84-7438-ab50_f06d3ea24429",
+            " 82f1dd3c-de95-075b-93ff-a240f135f8fd",
+            "82f1dd3c-de95-075b-93ff-a240f135f8fd ",
+            " 82f1dd3c-de95-075b-93ff-a240f135f8fd ",
+            "82f1dd3cd-e95-075b-93ff-a240f135f8fd",
+            "82f1dd3c-de95075b-93ff-a240f135f8fd",
+            "82f1dd3c-de95-075b93ff-a240-f135f8fd",
+            "{8273b64c5ed0a88b10dad09a6a2b963c}",
+            "urn:uuid:8273b64c5ed0a88b10dad09a6a2b963c",
+            "{0189f965-7b27-7dc0-8f96-1d8eb026b7e2]",
+            "(0189f965-7b27-7dc0-8f96-1d8eb026b7e2}",
+            "urn:uuld:0189f965-7b27-7dc0-8f96-1d8eb026b7e2",
+            "0189f965-7b27-7dc0-8f96-1d8ebſ6b7e2",
         ];
 
         for e in cases {
@@ -641,7 +680,7 @@ mod tests {
     /// Has symmetric converters
     #[test]
     fn has_symmetric_converters() {
-        for (fs, _, _) in prepare_cases() {
+        for &(fs, _, _) in prepare_cases() {
             let e = Uuid::from_fields_v7(fs.0, fs.1, fs.2);
             assert_eq!(Uuid::from(<[u8; 16]>::from(e)), e);
             assert_eq!(Uuid::from(u128::from(e)), e);
