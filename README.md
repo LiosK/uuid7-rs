@@ -108,3 +108,5 @@ Licensed under the Apache License, Version 2.0.
 ## See also
 
 - [docs.rs/uuid7](https://docs.rs/uuid7)
+- Related project: [Uuid25](https://crates.io/crates/uuid25): 25-digit
+  case-insensitive UUID encoding
