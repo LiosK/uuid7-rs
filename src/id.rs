@@ -6,6 +6,7 @@ use std::{fmt, str};
 
 /// Represents a Universally Unique IDentifier.
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default)]
+#[repr(transparent)]
 pub struct Uuid([u8; 16]);
 
 impl Uuid {
