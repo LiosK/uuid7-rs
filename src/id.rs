@@ -47,11 +47,8 @@ impl Uuid {
     }
 
     /// Returns the 8-4-4-4-12 hexadecimal string representation stored in a stack-allocated
-    /// string-like type that can be handled like [`String`] through common traits.
-    ///
-    /// This method is primarily for `no_std` environments where heap-allocated string types are
-    /// not readily available. Use the [`fmt::Display`] trait usually to get the 8-4-4-4-12
-    /// canonical hexadecimal string representation.
+    /// string-like type that can be handled like [`String`] through `Deref<Target = str>` and
+    /// other common traits.
     ///
     /// # Examples
     ///
@@ -64,19 +61,58 @@ impl Uuid {
     /// assert_eq!(format!("{y}"), "01809424-3e59-7c05-9219-566f82fff672");
     /// # Ok::<(), uuid7::ParseError>(())
     /// ```
-    pub fn encode(&self) -> FStr<36> {
+    pub const fn encode(&self) -> FStr<36> {
         const DIGITS: &[u8; 16] = b"0123456789abcdef";
 
         let mut buffer = [0u8; 36];
-        let mut buf_iter = buffer.iter_mut();
-        for i in 0..16 {
-            let e = self.0[i] as usize;
-            *buf_iter.next().unwrap() = DIGITS[e >> 4];
-            *buf_iter.next().unwrap() = DIGITS[e & 15];
-            if i == 3 || i == 5 || i == 7 || i == 9 {
-                *buf_iter.next().unwrap() = b'-';
+        let mut r = 0;
+        let mut w = 0;
+        while r < 16 {
+            let e = self.0[r] as usize;
+            buffer[w + 0] = DIGITS[e >> 4];
+            buffer[w + 1] = DIGITS[e & 15];
+            if r == 3 || r == 5 || r == 7 || r == 9 {
+                buffer[w + 2] = b'-';
+                w += 1;
             }
+            r += 1;
+            w += 2;
         }
+
+        // SAFETY: ok because buffer consists of ASCII bytes
+        unsafe { FStr::from_inner_unchecked(buffer) }
+    }
+
+    /// Returns the 32-digit hexadecimal string representation without hyphens stored in a
+    /// stack-allocated string-like type that can be handled like [`String`] through
+    /// `Deref<Target = str>` and other common traits.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use uuid7::Uuid;
+    ///
+    /// let x = "01809424-3e59-7c05-9219-566f82fff672".parse::<Uuid>()?;
+    /// let y = x.encode_hex();
+    /// assert_eq!(y, "018094243e597c059219566f82fff672");
+    /// assert_eq!(format!("{y}"), "018094243e597c059219566f82fff672");
+    /// # Ok::<(), uuid7::ParseError>(())
+    /// ```
+    pub const fn encode_hex(&self) -> FStr<32> {
+        const DIGITS: &[u8; 16] = b"0123456789abcdef";
+
+        let mut buffer = [0u8; 32];
+        let mut r = 0;
+        let mut w = 0;
+        while r < 16 {
+            let e = self.0[r] as usize;
+            buffer[w + 0] = DIGITS[e >> 4];
+            buffer[w + 1] = DIGITS[e & 15];
+            r += 1;
+            w += 2;
+        }
+
+        // SAFETY: ok because buffer consists of ASCII bytes
         unsafe { FStr::from_inner_unchecked(buffer) }
     }
 
@@ -422,23 +458,121 @@ mod tests {
     use super::{Uuid, Variant};
 
     /// Returns a collection of prepared cases
-    fn prepare_cases() -> &'static [((u64, u16, u64), &'static str)] {
+    fn prepare_cases() -> &'static [((u64, u16, u64), &'static str, &'static str)] {
         const MAX_UINT48: u64 = (1 << 48) - 1;
         const MAX_UINT12: u16 = (1 << 12) - 1;
         const MAX_UINT62: u64 = (1 << 62) - 1;
 
         &[
-            ((0, 0, 0), "00000000-0000-7000-8000-000000000000"),
-            ((MAX_UINT48, 0, 0), "ffffffff-ffff-7000-8000-000000000000"),
-            ((0, MAX_UINT12, 0), "00000000-0000-7fff-8000-000000000000"),
-            ((0, 0, MAX_UINT62), "00000000-0000-7000-bfff-ffffffffffff"),
+            (
+                (0, 0, 0),
+                "00000000-0000-7000-8000-000000000000",
+                "00000000000070008000000000000000",
+            ),
+            (
+                (MAX_UINT48, 0, 0),
+                "ffffffff-ffff-7000-8000-000000000000",
+                "ffffffffffff70008000000000000000",
+            ),
+            (
+                (0, MAX_UINT12, 0),
+                "00000000-0000-7fff-8000-000000000000",
+                "0000000000007fff8000000000000000",
+            ),
+            (
+                (0, 0, MAX_UINT62),
+                "00000000-0000-7000-bfff-ffffffffffff",
+                "0000000000007000bfffffffffffffff",
+            ),
             (
                 (MAX_UINT48, MAX_UINT12, MAX_UINT62),
                 "ffffffff-ffff-7fff-bfff-ffffffffffff",
+                "ffffffffffff7fffbfffffffffffffff",
             ),
             (
                 (0x17f22e279b0, 0xcc3, 0x18c4dc0c0c07398f),
                 "017f22e2-79b0-7cc3-98c4-dc0c0c07398f",
+                "017f22e279b07cc398c4dc0c0c07398f",
+            ),
+            (
+                (0x3c118418e261, 0x925, 0x22a0bed422629452),
+                "3c118418-e261-7925-a2a0-bed422629452",
+                "3c118418e2617925a2a0bed422629452",
+            ),
+            (
+                (0x748f153a906f, 0x4dc, 0x3f75b34645e00cf6),
+                "748f153a-906f-74dc-bf75-b34645e00cf6",
+                "748f153a906f74dcbf75b34645e00cf6",
+            ),
+            (
+                (0xc10740721c18, 0x1d2, 0x0fb4869d5ad33723),
+                "c1074072-1c18-71d2-8fb4-869d5ad33723",
+                "c10740721c1871d28fb4869d5ad33723",
+            ),
+            (
+                (0x36c6849ed55a, 0x40d, 0x06e032eec9e03663),
+                "36c6849e-d55a-740d-86e0-32eec9e03663",
+                "36c6849ed55a740d86e032eec9e03663",
+            ),
+            (
+                (0x6ad0aeb52304, 0xb0c, 0x1a8e81248f251fd0),
+                "6ad0aeb5-2304-7b0c-9a8e-81248f251fd0",
+                "6ad0aeb523047b0c9a8e81248f251fd0",
+            ),
+            (
+                (0xb6b893527d5b, 0x683, 0x1e97df98d7a5b321),
+                "b6b89352-7d5b-7683-9e97-df98d7a5b321",
+                "b6b893527d5b76839e97df98d7a5b321",
+            ),
+            (
+                (0x462a9021a1fb, 0x8ac, 0x1b6424bc29937258),
+                "462a9021-a1fb-78ac-9b64-24bc29937258",
+                "462a9021a1fb78ac9b6424bc29937258",
+            ),
+            (
+                (0x00c7ad2f67fc, 0x775, 0x2a5d177c68e6c25e),
+                "00c7ad2f-67fc-7775-aa5d-177c68e6c25e",
+                "00c7ad2f67fc7775aa5d177c68e6c25e",
+            ),
+            (
+                (0xd73eac555b53, 0xd53, 0x3f850566d85ea524),
+                "d73eac55-5b53-7d53-bf85-0566d85ea524",
+                "d73eac555b537d53bf850566d85ea524",
+            ),
+            (
+                (0xa4f42edd870a, 0xd95, 0x0055edd081914d74),
+                "a4f42edd-870a-7d95-8055-edd081914d74",
+                "a4f42edd870a7d958055edd081914d74",
+            ),
+            (
+                (0xb5c735436c73, 0x19f, 0x00357b0dc5d14202),
+                "b5c73543-6c73-719f-8035-7b0dc5d14202",
+                "b5c735436c73719f80357b0dc5d14202",
+            ),
+            (
+                (0x09ed4f9e971f, 0x343, 0x28a740c969795aa6),
+                "09ed4f9e-971f-7343-a8a7-40c969795aa6",
+                "09ed4f9e971f7343a8a740c969795aa6",
+            ),
+            (
+                (0x28c210842287, 0xe81, 0x0f72f0ca391ae12a),
+                "28c21084-2287-7e81-8f72-f0ca391ae12a",
+                "28c2108422877e818f72f0ca391ae12a",
+            ),
+            (
+                (0x565aa057c667, 0x112, 0x3002f21048341917),
+                "565aa057-c667-7112-b002-f21048341917",
+                "565aa057c6677112b002f21048341917",
+            ),
+            (
+                (0xee413d37e4fc, 0x1ba, 0x142dd8e5b3097832),
+                "ee413d37-e4fc-71ba-942d-d8e5b3097832",
+                "ee413d37e4fc71ba942dd8e5b3097832",
+            ),
+            (
+                (0x936b5620ef3d, 0xfc4, 0x344bbd7257ac08aa),
+                "936b5620-ef3d-7fc4-b44b-bd7257ac08aa",
+                "936b5620ef3d7fc4b44bbd7257ac08aa",
             ),
         ]
     }
@@ -446,15 +580,18 @@ mod tests {
     /// Encodes and decodes prepared cases correctly
     #[test]
     fn encodes_and_decodes_prepared_cases_correctly() {
-        for (fs, text) in prepare_cases() {
+        for (fs, text, hex) in prepare_cases() {
             let from_fields = Uuid::from_fields_v7(fs.0, fs.1, fs.2);
             assert_eq!(Ok(from_fields), text.parse());
             assert_eq!(Ok(from_fields), text.to_uppercase().parse());
             assert_eq!(&from_fields.encode() as &str, *text);
+            assert_eq!(&from_fields.encode_hex() as &str, *hex);
             #[cfg(feature = "std")]
             assert_eq!(&from_fields.to_string(), text);
             #[cfg(feature = "std")]
             assert_eq!(&from_fields.encode().to_string(), text);
+            #[cfg(feature = "std")]
+            assert_eq!(&from_fields.encode_hex().to_string(), hex);
             #[cfg(all(feature = "global_gen", feature = "uuid"))]
             assert_eq!(&uuid::Uuid::from(from_fields).to_string(), text);
             assert_eq!(from_fields.variant(), Variant::Var10);
@@ -504,7 +641,7 @@ mod tests {
     /// Has symmetric converters
     #[test]
     fn has_symmetric_converters() {
-        for (fs, _) in prepare_cases() {
+        for (fs, _, _) in prepare_cases() {
             let e = Uuid::from_fields_v7(fs.0, fs.1, fs.2);
             assert_eq!(Uuid::from(<[u8; 16]>::from(e)), e);
             assert_eq!(Uuid::from(u128::from(e)), e);
