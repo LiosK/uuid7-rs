@@ -13,7 +13,7 @@ println!("{:?}", uuid.as_bytes()); // as 16-byte big-endian array
 let uuid_string: String = uuid7::uuid7().to_string();
 ```
 
-See [draft-ietf-uuidrev-rfc4122bis-08](https://www.ietf.org/archive/id/draft-ietf-uuidrev-rfc4122bis-08.html).
+See [draft-ietf-uuidrev-rfc4122bis-09](https://www.ietf.org/archive/id/draft-ietf-uuidrev-rfc4122bis-09.html).
 
 ## Field and bit layout
 
@@ -108,3 +108,5 @@ Licensed under the Apache License, Version 2.0.
 ## See also
 
 - [docs.rs/uuid7](https://docs.rs/uuid7)
+- Related project: [Uuid25](https://crates.io/crates/uuid25): 25-digit
+  case-insensitive UUID encoding
