@@ -166,35 +166,41 @@ impl str::FromStr for Uuid {
 
     /// Creates an object from the 8-4-4-4-12 hexadecimal string representation.
     fn from_str(src: &str) -> Result<Self, Self::Err> {
+        use ParseErrorKind::*;
         let (offset, is_hyphenated) = match src.len() {
-            32 => Ok((0, false)),
-            36 => Ok((0, true)),
+            32 => (0, false),
+            36 => (0, true),
             38 => match src.starts_with('{') && src.ends_with('}') {
-                true => Ok((1, true)),
-                _ => Err(ParseError::format()),
+                true => (1, true),
+                _ => return Err(ParseError { kind: Format }),
             },
             45 => match src.get(..9).map(|h| h.eq_ignore_ascii_case("urn:uuid:")) {
-                Some(true) => Ok((9, true)),
-                _ => Err(ParseError::format()),
+                Some(true) => (9, true),
+                _ => return Err(ParseError { kind: Format }),
             },
-            _ => Err(ParseError::length()),
-        }?;
+            _ => return Err(ParseError { kind: Format }),
+        };
 
-        const ERR_DIGIT: ParseError = ParseError::digit();
         let mut dst = [0u8; 16];
         let mut iter = src.chars().skip(offset);
-        for (i, e) in dst.iter_mut().enumerate() {
-            let hi = iter.next().unwrap().to_digit(16).ok_or(ERR_DIGIT)? as u8;
-            let lo = iter.next().unwrap().to_digit(16).ok_or(ERR_DIGIT)? as u8;
-            *e = (hi << 4) | lo;
-            if is_hyphenated
-                && (i == 3 || i == 5 || i == 7 || i == 9)
-                && iter.next().unwrap() != '-'
-            {
-                return Err(ParseError::format());
+        for (i, byte) in dst.iter_mut().enumerate() {
+            let hi = {
+                let chr = iter.next().unwrap();
+                chr.to_digit(16).ok_or(ParseError { kind: Digit(chr) })?
+            } as u8;
+            let lo = {
+                let chr = iter.next().unwrap();
+                chr.to_digit(16).ok_or(ParseError { kind: Digit(chr) })?
+            } as u8;
+            *byte = (hi << 4) | lo;
+            if is_hyphenated && (i == 3 || i == 5 || i == 7 || i == 9) {
+                let chr = iter.next().unwrap();
+                if chr != '-' {
+                    return Err(ParseError { kind: Hyphen(chr) });
+                }
             }
         }
-        // `to_digit()` or `!= '-'` fails if `src` includes non-ASCII char
+        // `match src.len()` arms, `to_digit(16)`, or `!= '-'` fails if `src` includes non-ASCII
         debug_assert!(src.is_ascii());
         Ok(Self(dst))
     }
@@ -238,29 +244,9 @@ pub struct ParseError {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 enum ParseErrorKind {
-    Length,
-    Digit,
+    Digit(char),
     Format,
-}
-
-impl ParseError {
-    const fn length() -> Self {
-        Self {
-            kind: ParseErrorKind::Length,
-        }
-    }
-
-    const fn digit() -> Self {
-        Self {
-            kind: ParseErrorKind::Digit,
-        }
-    }
-
-    const fn format() -> Self {
-        Self {
-            kind: ParseErrorKind::Format,
-        }
-    }
+    Hyphen(char),
 }
 
 impl fmt::Display for ParseError {
@@ -268,9 +254,9 @@ impl fmt::Display for ParseError {
         use ParseErrorKind::*;
         write!(f, "could not parse string as UUID: ")?;
         match self.kind {
-            Length => write!(f, "invalid length"),
-            Digit => write!(f, "invalid digit"),
-            Format => write!(f, "invalid format"),
+            Digit(chr) => write!(f, "invalid hex digit {:?} found", chr),
+            Format => write!(f, "invalid length or unsupported format"),
+            Hyphen(chr) => write!(f, "expected '-' not found but {:?}", chr),
         }
     }
 }
