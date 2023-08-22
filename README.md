@@ -7,7 +7,7 @@ A Rust implementation of the proposed UUID Version 7
 
 ```rust
 let uuid = uuid7::uuid7();
-println!("{uuid}"); // e.g., "01809424-3e59-7c05-9219-566f82fff672"
+println!("{}", uuid); // e.g., "01809424-3e59-7c05-9219-566f82fff672"
 println!("{:?}", uuid.as_bytes()); // as 16-byte big-endian array
 
 let uuid_string: String = uuid7::uuid7().to_string();
@@ -81,7 +81,7 @@ This library also supports the generation of UUID version 4:
 
 ```rust
 let uuid = uuid7::uuid4();
-println!("{uuid}"); // e.g., "2ca4b2ce-6c13-40d4-bccf-37d222820f6f"
+println!("{}", uuid); // e.g., "2ca4b2ce-6c13-40d4-bccf-37d222820f6f"
 ```
 
 `V7Generator` provides an interface that allows finer control over the various
@@ -93,12 +93,12 @@ use uuid7::V7Generator;
 let mut g = V7Generator::new(rand::rngs::OsRng);
 let custom_unix_ts_ms = 0x0123_4567_8901u64;
 let x = g.generate_or_reset_core(custom_unix_ts_ms, 10_000);
-println!("{x}");
+println!("{}", x);
 
 let y = g
     .generate_or_abort_core(custom_unix_ts_ms, 10_000)
     .expect("clock went backwards by more than 10_000 milliseconds");
-println!("{y}");
+println!("{}", y);
 ```
 
 ## License

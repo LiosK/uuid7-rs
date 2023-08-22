@@ -201,7 +201,7 @@ impl<R: rand::RngCore> V7Generator<R> {
 ///     .enumerate()
 ///     .skip(4)
 ///     .take(4)
-///     .for_each(|(i, e)| println!("[{i}] {e}"));
+///     .for_each(|(i, e)| println!("[{}] {}", i, e));
 /// ```
 #[cfg(feature = "std")]
 #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
