@@ -33,7 +33,7 @@ use crate::Uuid;
 ///
 /// # Generator functions
 ///
-/// The generator offers four different methods to generate a UUIDv7:
+/// The generator comes with four different methods that generate a UUIDv7:
 ///
 /// | Flavor                     | Timestamp | On big clock rewind |
 /// | -------------------------- | --------- | ------------------- |
@@ -42,12 +42,15 @@ use crate::Uuid;
 /// | [`generate_or_reset_core`] | Argument  | Resets generator    |
 /// | [`generate_or_abort_core`] | Argument  | Returns `None`      |
 ///
-/// All of these methods return monotonically increasing UUIDs unless a timestamp provided is
-/// significantly (by default, more than ten seconds) smaller than the one embedded in the
-/// immediately preceding UUID. If such a significant clock rollback is detected, the `generate`
-/// (or_reset) method resets the generator and returns a new UUID based on the given timestamp,
-/// while the `or_abort` variants abort and return `None`. The `core` functions offer low-level
-/// primitives.
+/// All of the four return a monotonically increasing UUID by reusing the previous timestamp even
+/// if the one provided is smaller than the immediately preceding UUID's. However, when such a
+/// clock rollback is considered significant (by default, more than ten seconds):
+///
+/// 1.  `generate` (or_reset) methods reset the generator and return a new UUID based on the given
+///     timestamp, breaking the increasing order of UUIDs.
+/// 2.  `or_abort` variants abort and return `None` immediately.
+///
+/// The `core` functions offer low-level primitives to customize the behavior.
 ///
 /// [`generate`]: V7Generator::generate
 /// [`generate_or_abort`]: V7Generator::generate_or_abort
@@ -201,7 +204,7 @@ impl<R: rand::RngCore> V7Generator<R> {
 ///     .enumerate()
 ///     .skip(4)
 ///     .take(4)
-///     .for_each(|(i, e)| println!("[{i}] {e}"));
+///     .for_each(|(i, e)| println!("[{}] {}", i, e));
 /// ```
 #[cfg(feature = "std")]
 #[cfg_attr(docsrs, doc(cfg(feature = "std")))]

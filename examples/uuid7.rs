@@ -9,7 +9,7 @@ fn main() -> io::Result<ExitCode> {
         match parse_args(args) {
             Ok(opt) => opt.unwrap_or(1),
             Err(message) => {
-                eprintln!("Error: {message}");
+                eprintln!("Error: {}", message);
                 eprintln!(
                     "Usage: {} [-n count]",
                     program.as_deref().unwrap_or("uuid7")
@@ -31,7 +31,7 @@ fn parse_args(mut args: impl Iterator<Item = String>) -> Result<Option<usize>, S
     let mut count = None;
     while let Some(arg) = args.next() {
         if arg != "-n" {
-            return Err(format!("unrecognized argument '{arg}'"));
+            return Err(format!("unrecognized argument '{}'", arg));
         }
         if count.is_some() {
             return Err("option 'n' given more than once".to_owned());
@@ -40,7 +40,7 @@ fn parse_args(mut args: impl Iterator<Item = String>) -> Result<Option<usize>, S
             return Err("argument to option 'n' missing".to_owned());
         };
         let Ok(c) = n_arg.parse() else {
-            return Err(format!("invalid argument to option 'n': '{n_arg}'"));
+            return Err(format!("invalid argument to option 'n': '{}'", n_arg));
         };
         count.replace(c);
     }

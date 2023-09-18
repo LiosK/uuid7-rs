@@ -25,7 +25,7 @@ fn lock_global_gen() -> sync::MutexGuard<'static, GlobalGenInner> {
 ///
 /// ```rust
 /// let uuid = uuid7::uuid7();
-/// println!("{uuid}"); // e.g., "01809424-3e59-7c05-9219-566f82fff672"
+/// println!("{}", uuid); // e.g., "01809424-3e59-7c05-9219-566f82fff672"
 /// println!("{:?}", uuid.as_bytes()); // as 16-byte big-endian array
 ///
 /// let uuid_string: String = uuid7::uuid7().to_string();
@@ -41,7 +41,7 @@ pub fn uuid7() -> Uuid {
 ///
 /// ```rust
 /// let uuid = uuid7::uuid4();
-/// println!("{uuid}"); // e.g., "2ca4b2ce-6c13-40d4-bccf-37d222820f6f"
+/// println!("{}", uuid); // e.g., "2ca4b2ce-6c13-40d4-bccf-37d222820f6f"
 /// ```
 #[cfg_attr(docsrs, doc(cfg(feature = "global_gen")))]
 pub fn uuid4() -> Uuid {
@@ -206,7 +206,7 @@ mod tests_v7 {
         let margin = 4.417173 * (0.5 * 0.5 / N_SAMPLES as f64).sqrt();
         for i in 96..128 {
             let p = bins[i] as f64 / N_SAMPLES as f64;
-            assert!((p - 0.5).abs() < margin, "random bit {i}: {p}");
+            assert!((p - 0.5).abs() < margin, "random bit {}: {}", i, p);
         }
     }
 
@@ -309,7 +309,7 @@ mod tests_v4 {
         let margin = 4.417173 * (0.5 * 0.5 / N_SAMPLES as f64).sqrt();
         for i in (0..48).chain(52..64).chain(66..128) {
             let p = bins[i] as f64 / N_SAMPLES as f64;
-            assert!((p - 0.5).abs() < margin, "random bit {i}: {p}");
+            assert!((p - 0.5).abs() < margin, "random bit {}: {}", i, p);
         }
     }
 
