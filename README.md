@@ -3,7 +3,7 @@
 [![Crates.io](https://img.shields.io/crates/v/uuid7)](https://crates.io/crates/uuid7)
 [![License](https://img.shields.io/crates/l/uuid7)](https://github.com/LiosK/uuid7-rs/blob/main/LICENSE)
 
-A Rust implementation of the proposed UUID Version 7
+A Rust implementation of UUID version 7
 
 ```rust
 let uuid = uuid7::uuid7();
@@ -13,7 +13,7 @@ println!("{:?}", uuid.as_bytes()); // as 16-byte big-endian array
 let uuid_string: String = uuid7::uuid7().to_string();
 ```
 
-See [draft-ietf-uuidrev-rfc4122bis-11](https://www.ietf.org/archive/id/draft-ietf-uuidrev-rfc4122bis-11.html).
+See [RFC 9562](https://www.rfc-editor.org/rfc/rfc9562).
 
 ## Field and bit layout
 

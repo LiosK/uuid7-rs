@@ -1,10 +1,10 @@
 [package]
 name = "uuid7"
-version = "0.7.2"
+version = "1.0.0"
 authors = ["LiosK <contact@mail.liosk.net>"]
 license = "Apache-2.0"
 edition = "2021"
-description = "A Rust implementation of the proposed UUID Version 7"
+description = "A Rust implementation of UUID version 7"
 repository = "https://github.com/LiosK/uuid7-rs"
 
 [dependencies]

@@ -1,4 +1,4 @@
-//! A Rust implementation of the proposed UUID Version 7
+//! A Rust implementation of UUID version 7
 //!
 //! ```rust
 //! let uuid = uuid7::uuid7();
@@ -8,7 +8,7 @@
 //! let uuid_string: String = uuid7::uuid7().to_string();
 //! ```
 //!
-//! See [draft-ietf-uuidrev-rfc4122bis-11](https://www.ietf.org/archive/id/draft-ietf-uuidrev-rfc4122bis-11.html).
+//! See [RFC 9562](https://www.rfc-editor.org/rfc/rfc9562).
 //!
 //! # Field and bit layout
 //!
