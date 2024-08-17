@@ -271,7 +271,7 @@ pub enum Variant {
     /// The variant `0b0` (NCS), excluding the Nil UUID.
     Var0,
 
-    /// The variant `0b10` (RFC 4122).
+    /// The variant `0b10` (RFC 9562).
     Var10,
 
     /// The variant `0b110` (Microsoft).
