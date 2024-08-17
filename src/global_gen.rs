@@ -67,7 +67,7 @@ mod inner {
     pub struct GlobalGenInner {
         #[cfg(unix)]
         pid: u32,
-        gen: V7Generator<GlobalGenRng>,
+        generator: V7Generator<GlobalGenRng>,
     }
 
     impl Default for GlobalGenInner {
@@ -78,7 +78,7 @@ mod inner {
             Self {
                 #[cfg(unix)]
                 pid: std::process::id(),
-                gen: V7Generator::new(ReseedingRng::new(rng, 1024 * 64, OsRng)),
+                generator: V7Generator::new(ReseedingRng::new(rng, 1024 * 64, OsRng)),
             }
         }
     }
@@ -91,7 +91,7 @@ mod inner {
             if self.pid != std::process::id() {
                 *self = Default::default();
             }
-            &mut self.gen
+            &mut self.generator
         }
     }
 }
