@@ -577,6 +577,7 @@ mod tests {
         pub braced: &'static str,
         pub urn: &'static str,
         pub fields_v7: Option<(u64, u16, u64)>,
+        #[cfg_attr(not(feature = "serde"), allow(dead_code))]
         pub bytes: [u8; 16],
     }
 
