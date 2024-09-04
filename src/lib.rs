@@ -44,7 +44,7 @@
 //! about overflow, but in an extremely rare circumstance where it overflows, this
 //! library increments the `unix_ts_ms` field to continue instant monotonic
 //! generation. As a result, the `unix_ts_ms` may have a greater value than that of
-//! the system's real-time clock.
+//! the system's real-time clock. (See also [Why so large counter? (42bits)]).
 //!
 //! UUIDv7, by design, relies on the system clock to guarantee the monotonically
 //! increasing order of generated IDs. A generator may not be able to produce a
@@ -53,6 +53,8 @@
 //! considered significant (by default, more than ten seconds). If such a
 //! significant rollback takes place, this library resets the generator by default
 //! and thus breaks the increasing order of generated IDs.
+//!
+//! [Why so large counter? (42bits)]: https://github.com/LiosK/uuidv7/issues/13#issuecomment-2306922356
 //!
 //! # Crate features
 //!
