@@ -11,9 +11,6 @@ pub trait Rng {
 
     /// Returns the next random `u64`.
     fn next_u64(&mut self) -> u64;
-
-    /// Fills `dest` with random data.
-    fn fill_bytes(&mut self, dest: &mut [u8]);
 }
 
 /// Represents a UUIDv7 generator that encapsulates a counter and guarantees the monotonic order of
@@ -203,7 +200,8 @@ impl<R: Rng> V7Generator<R> {
     #[cfg(feature = "global_gen")]
     pub(crate) fn generate_v4(&mut self) -> Uuid {
         let mut bytes = [0u8; 16];
-        self.rng.fill_bytes(&mut bytes);
+        bytes[..8].copy_from_slice(&self.rng.next_u64().to_le_bytes());
+        bytes[8..].copy_from_slice(&self.rng.next_u64().to_le_bytes());
         bytes[6] = 0x40 | (bytes[6] >> 4);
         bytes[8] = 0x80 | (bytes[8] >> 2);
         Uuid::from(bytes)

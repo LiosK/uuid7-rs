@@ -15,10 +15,6 @@ impl<T: RngCore> Rng for Adapter<T> {
     fn next_u64(&mut self) -> u64 {
         self.0.next_u64()
     }
-
-    fn fill_bytes(&mut self, dest: &mut [u8]) {
-        self.0.fill_bytes(dest)
-    }
 }
 
 impl<T: RngCore> V7Generator<Adapter<T>> {
@@ -38,9 +34,5 @@ impl<T: RngCore> Rng for T {
 
     fn next_u64(&mut self) -> u64 {
         self.next_u64()
-    }
-
-    fn fill_bytes(&mut self, dest: &mut [u8]) {
-        self.fill_bytes(dest)
     }
 }
