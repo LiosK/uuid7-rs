@@ -29,6 +29,8 @@ impl<T: RngCore> V7Generator<Adapter<T>> {
     }
 }
 
+/// This is a deprecated blanket impl retained for backward compatibility. Do not depend on this
+/// impl; use [`V7Generator::with_rand08()`] instead.
 impl<T: RngCore> Rng for T {
     fn next_u32(&mut self) -> u32 {
         self.next_u32()

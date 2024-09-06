@@ -81,6 +81,10 @@ pub struct V7Generator<R> {
 
 impl<R: Rng> V7Generator<R> {
     /// Creates a generator instance.
+    ///
+    /// Use [`V7Generator::with_rand08()`] to create a generator with the random number generators
+    /// from `rand` crate. Although this constructor accepts [`rand::RngCore`] types for historical
+    /// reasons, such behavior is deprecated and will be removed in the future.
     pub const fn new(rng: R) -> Self {
         Self {
             timestamp: 0,

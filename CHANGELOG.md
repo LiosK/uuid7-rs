@@ -6,8 +6,8 @@
 
 - Internal random number generator interface for `V7Generator` from
   `rand::RngCore` to `generator::Rng` to relax hard dependency on `rand` crate
-  - Maintained compatibility by implementing `generator::Rng` for
-    `rand::RngCore`
+  - Maintained backward compatibility, though is deprecated, by providing
+    blanket implementation of `generator::Rng` for `rand::RngCore`
 
 ### Added
 
