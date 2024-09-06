@@ -1,4 +1,4 @@
-//! UUIDv7 generator-related types
+//! UUIDv7 generator and related types.
 
 use crate::Uuid;
 

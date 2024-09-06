@@ -105,8 +105,8 @@
 mod id;
 pub use id::{ParseError, Uuid, Variant};
 
-mod gen7;
-pub use gen7::V7Generator;
+pub mod generator;
+pub use generator::V7Generator;
 
 mod global_gen;
 #[cfg(feature = "global_gen")]
