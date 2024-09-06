@@ -2,6 +2,20 @@
 
 use crate::Uuid;
 
+pub mod with_rand08;
+
+/// A trait that defines the minimum random number generator interface for [`V7Generator`].
+pub trait Rng {
+    /// Returns the next random `u32`.
+    fn next_u32(&mut self) -> u32;
+
+    /// Returns the next random `u64`.
+    fn next_u64(&mut self) -> u64;
+
+    /// Fills `dest` with random data.
+    fn fill_bytes(&mut self, dest: &mut [u8]);
+}
+
 /// Represents a UUIDv7 generator that encapsulates a counter and guarantees the monotonic order of
 /// UUIDs generated within the same millisecond.
 ///
@@ -17,7 +31,7 @@ use crate::Uuid;
 /// use std::{sync, thread};
 /// use uuid7::V7Generator;
 ///
-/// let g = sync::Arc::new(sync::Mutex::new(V7Generator::new(OsRng)));
+/// let g = sync::Arc::new(sync::Mutex::new(V7Generator::with_rand08(OsRng)));
 /// thread::scope(|s| {
 ///     for i in 0..4 {
 ///         let g = sync::Arc::clone(&g);
@@ -65,7 +79,7 @@ pub struct V7Generator<R> {
     rng: R,
 }
 
-impl<R: rand::RngCore> V7Generator<R> {
+impl<R: Rng> V7Generator<R> {
     /// Creates a generator instance.
     pub const fn new(rng: R) -> Self {
         Self {
@@ -200,7 +214,7 @@ impl<R: rand::RngCore> V7Generator<R> {
 /// ```rust
 /// use uuid7::V7Generator;
 ///
-/// V7Generator::new(rand::thread_rng())
+/// V7Generator::with_rand08(rand::thread_rng())
 ///     .enumerate()
 ///     .skip(4)
 ///     .take(4)
@@ -208,7 +222,7 @@ impl<R: rand::RngCore> V7Generator<R> {
 /// ```
 #[cfg(feature = "std")]
 #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
-impl<R: rand::RngCore> Iterator for V7Generator<R> {
+impl<R: Rng> Iterator for V7Generator<R> {
     type Item = Uuid;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -222,19 +236,20 @@ impl<R: rand::RngCore> Iterator for V7Generator<R> {
 
 #[cfg(feature = "std")]
 #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
-impl<R: rand::RngCore> std::iter::FusedIterator for V7Generator<R> {}
+impl<R: Rng> std::iter::FusedIterator for V7Generator<R> {}
 
 #[cfg(feature = "std")]
 #[cfg(test)]
 mod tests_generate_or_reset {
-    use super::V7Generator;
-    use rand::rngs::ThreadRng;
+    use super::{with_rand08, V7Generator};
+
+    type ThreadGen = V7Generator<with_rand08::Adapter<rand::rngs::ThreadRng>>;
 
     /// Generates increasing UUIDs even with decreasing or constant timestamp
     #[test]
     fn generates_increasing_uuids_even_with_decreasing_or_constant_timestamp() {
         let ts = 0x0123_4567_89abu64;
-        let mut g: V7Generator<ThreadRng> = Default::default();
+        let mut g: ThreadGen = Default::default();
         let mut prev = g.generate_or_reset_core(ts, 10_000);
         assert_eq!(prev.as_bytes()[..6], ts.to_be_bytes()[2..]);
         for i in 0..100_000u64 {
@@ -249,7 +264,7 @@ mod tests_generate_or_reset {
     #[test]
     fn breaks_increasing_order_of_uuids_if_timestamp_goes_backwards_a_lot() {
         let ts = 0x0123_4567_89abu64;
-        let mut g: V7Generator<ThreadRng> = Default::default();
+        let mut g: ThreadGen = Default::default();
         let mut prev = g.generate_or_reset_core(ts, 10_000);
         assert_eq!(prev.as_bytes()[..6], ts.to_be_bytes()[2..]);
 
@@ -270,14 +285,15 @@ mod tests_generate_or_reset {
 #[cfg(feature = "std")]
 #[cfg(test)]
 mod tests_generate_or_abort {
-    use super::V7Generator;
-    use rand::rngs::ThreadRng;
+    use super::{with_rand08, V7Generator};
+
+    type ThreadGen = V7Generator<with_rand08::Adapter<rand::rngs::ThreadRng>>;
 
     /// Generates increasing UUIDs even with decreasing or constant timestamp
     #[test]
     fn generates_increasing_uuids_even_with_decreasing_or_constant_timestamp() {
         let ts = 0x0123_4567_89abu64;
-        let mut g: V7Generator<ThreadRng> = Default::default();
+        let mut g: ThreadGen = Default::default();
         let mut prev = g.generate_or_abort_core(ts, 10_000).unwrap();
         assert_eq!(prev.as_bytes()[..6], ts.to_be_bytes()[2..]);
         for i in 0..100_000u64 {
@@ -292,7 +308,7 @@ mod tests_generate_or_abort {
     #[test]
     fn returns_none_if_timestamp_goes_backwards_a_lot() {
         let ts = 0x0123_4567_89abu64;
-        let mut g: V7Generator<ThreadRng> = Default::default();
+        let mut g: ThreadGen = Default::default();
         let prev = g.generate_or_abort_core(ts, 10_000).unwrap();
         assert_eq!(prev.as_bytes()[..6], ts.to_be_bytes()[2..]);
 

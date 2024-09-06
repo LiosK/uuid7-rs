@@ -1,10 +1,10 @@
-//! Default generator and entry point functions
+//! Default generator and entry point functions.
 
 #![cfg(feature = "global_gen")]
 
 use std::sync;
 
-use crate::{Uuid, V7Generator};
+use crate::Uuid;
 use inner::GlobalGenInner;
 
 /// Returns the lock handle of process-wide global generator, creating one if none exists.
@@ -52,7 +52,7 @@ mod inner {
     use rand::rngs::{adapter::ReseedingRng, OsRng};
     use rand_chacha::ChaCha12Core;
 
-    use super::V7Generator;
+    use crate::generator::{with_rand08, V7Generator};
 
     /// The type alias for the random number generator of the global generator.
     ///
@@ -60,7 +60,7 @@ mod inner {
     /// emulate the strategy used by [`rand::rngs::ThreadRng`].
     ///
     /// [`rand::rngs::ThreadRng`]: https://docs.rs/rand/0.8.5/rand/rngs/struct.ThreadRng.html
-    type GlobalGenRng = ReseedingRng<ChaCha12Core, OsRng>;
+    type GlobalGenRng = with_rand08::Adapter<ReseedingRng<ChaCha12Core, OsRng>>;
 
     /// A thin wrapper to reset the state when the process ID changes (i.e., upon Unix forks).
     #[derive(Debug)]
@@ -78,7 +78,7 @@ mod inner {
             Self {
                 #[cfg(unix)]
                 pid: std::process::id(),
-                generator: V7Generator::new(ReseedingRng::new(rng, 1024 * 64, OsRng)),
+                generator: V7Generator::with_rand08(ReseedingRng::new(rng, 1024 * 64, OsRng)),
             }
         }
     }
