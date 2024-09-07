@@ -1,6 +1,7 @@
 //! Default generator and entry point functions.
 
 #![cfg(feature = "global_gen")]
+#![cfg_attr(docsrs, doc(cfg(feature = "global_gen")))]
 
 use std::sync;
 
@@ -30,7 +31,6 @@ fn lock_global_gen() -> sync::MutexGuard<'static, GlobalGenInner> {
 ///
 /// let uuid_string: String = uuid7::uuid7().to_string();
 /// ```
-#[cfg_attr(docsrs, doc(cfg(feature = "global_gen")))]
 pub fn uuid7() -> Uuid {
     lock_global_gen().get_mut().generate()
 }
@@ -43,7 +43,6 @@ pub fn uuid7() -> Uuid {
 /// let uuid = uuid7::uuid4();
 /// println!("{}", uuid); // e.g., "2ca4b2ce-6c13-40d4-bccf-37d222820f6f"
 /// ```
-#[cfg_attr(docsrs, doc(cfg(feature = "global_gen")))]
 pub fn uuid4() -> Uuid {
     lock_global_gen().get_mut().generate_v4()
 }
