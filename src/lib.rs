@@ -88,7 +88,7 @@
 //! ```rust
 //! use uuid7::V7Generator;
 //!
-//! let mut g = V7Generator::new(rand::rngs::OsRng);
+//! let mut g = V7Generator::with_rand08(rand::rngs::OsRng);
 //! let custom_unix_ts_ms = 0x0123_4567_8901u64;
 //! let x = g.generate_or_reset_core(custom_unix_ts_ms, 10_000);
 //! println!("{}", x);
@@ -105,8 +105,8 @@
 mod id;
 pub use id::{ParseError, Uuid, Variant};
 
-mod gen7;
-pub use gen7::V7Generator;
+pub mod generator;
+pub use generator::V7Generator;
 
 mod global_gen;
 #[cfg(feature = "global_gen")]
