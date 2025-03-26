@@ -10,6 +10,7 @@ repository = "https://github.com/LiosK/uuid7-rs"
 [dependencies]
 fstr = { version = "0.2", default-features = false }
 rand = { version = "0.8", default-features = false }
+rand09 = { package = "rand", version = "0.9", default-features = false, optional = true }
 rand_chacha = { version = "0.3", optional = true }
 serde = { version = "1.0", default-features = false, optional = true }
 uuid = { version = "1", optional = true }
@@ -25,6 +26,7 @@ std = ["fstr/std"]
 global_gen = ["std", "rand/std", "dep:rand_chacha"]
 serde = ["dep:serde"]
 uuid = ["dep:uuid"]
+rand09 = ["dep:rand09"]
 
 [package.metadata.docs.rs]
 # RUSTDOCFLAGS="--cfg docsrs" cargo +nightly doc --all-features --no-deps --open

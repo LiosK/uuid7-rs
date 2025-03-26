@@ -3,6 +3,8 @@
 use crate::Uuid;
 
 pub mod with_rand08;
+#[cfg(feature = "rand09")]
+pub mod with_rand09;
 
 /// A trait that defines the minimum random number generator interface for [`V7Generator`].
 pub trait Rng {
