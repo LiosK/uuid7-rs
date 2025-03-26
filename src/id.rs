@@ -355,7 +355,7 @@ mod with_serde {
 
     struct VisitorImpl;
 
-    impl<'de> de::Visitor<'de> for VisitorImpl {
+    impl de::Visitor<'_> for VisitorImpl {
         type Value = Uuid;
 
         fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
