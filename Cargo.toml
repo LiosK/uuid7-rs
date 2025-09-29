@@ -4,8 +4,20 @@ version = "1.2.0-beta.1"
 authors = ["LiosK <contact@mail.liosk.net>"]
 license = "Apache-2.0"
 edition = "2021"
+rust-version = "1.70"
 description = "A Rust implementation of UUID version 7"
 repository = "https://github.com/LiosK/uuid7-rs"
+keywords = ["identifier", "uuid", "guid"]
+
+[features]
+default = ["global_gen"]
+std = ["fstr/std"]
+global_gen = ["std", "dep:rand", "dep:rand_chacha"]
+rand09 = ["dep:rand_core09"]
+serde = ["dep:serde"]
+uuid = ["dep:uuid"]
+
+rand08 = [] # Listed to allow explicit enabling of `rand` v0.8 integration
 
 [dependencies]
 fstr = { version = "0.2", default-features = false }
@@ -18,18 +30,8 @@ uuid = { version = "1", optional = true }
 
 [dev-dependencies]
 rand = "0.9"
-regex = { version = "1.9", default-features = false, features = ["std"] }
+regex = { version = "1.11", default-features = false, features = ["std"] }
 serde_test = "1.0"
-
-[features]
-default = ["global_gen"]
-std = ["fstr/std"]
-global_gen = ["std", "dep:rand", "dep:rand_chacha"]
-rand09 = ["dep:rand_core09"]
-serde = ["dep:serde"]
-uuid = ["dep:uuid"]
-
-rand08 = [] # Listed to allow explicit enabling of `rand` v0.8 integration
 
 [package.metadata.docs.rs]
 # RUSTDOCFLAGS="--cfg docsrs" cargo +nightly doc --all-features --no-deps --open
