@@ -1,5 +1,7 @@
 //!  Integration with `rand` (v0.9) crate.
 
+#![cfg(feature = "rand09")]
+
 use super::{Rng, V7Generator};
 use rand_core09::RngCore;
 

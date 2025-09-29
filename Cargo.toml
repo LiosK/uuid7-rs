@@ -29,6 +29,8 @@ global_gen = ["std", "dep:rand", "dep:rand_chacha"]
 serde = ["dep:serde"]
 uuid = ["dep:uuid"]
 
+rand08 = [] # Listed to allow explicit enabling of `rand` v0.8 integration
+
 [package.metadata.docs.rs]
 # RUSTDOCFLAGS="--cfg docsrs" cargo +nightly doc --all-features --no-deps --open
 all-features = true

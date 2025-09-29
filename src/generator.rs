@@ -3,7 +3,6 @@
 use crate::Uuid;
 
 pub mod with_rand08;
-#[cfg(feature = "rand09")]
 pub mod with_rand09;
 
 /// A trait that defines the minimum random number generator interface for [`V7Generator`].
@@ -101,7 +100,6 @@ impl<R: Rng> V7Generator<R> {
     ///
     /// See the [`V7Generator`] type documentation for the description.
     #[cfg(feature = "std")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
     pub fn generate(&mut self) -> Uuid {
         use std::time;
         self.generate_or_reset_core(
@@ -118,7 +116,6 @@ impl<R: Rng> V7Generator<R> {
     ///
     /// See the [`V7Generator`] type documentation for the description.
     #[cfg(feature = "std")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
     pub fn generate_or_abort(&mut self) -> Option<Uuid> {
         use std::time;
         self.generate_or_abort_core(
@@ -232,7 +229,6 @@ impl<R: Rng> V7Generator<R> {
 /// # }
 /// ```
 #[cfg(feature = "std")]
-#[cfg_attr(docsrs, doc(cfg(feature = "std")))]
 impl<R: Rng> Iterator for V7Generator<R> {
     type Item = Uuid;
 
@@ -246,7 +242,6 @@ impl<R: Rng> Iterator for V7Generator<R> {
 }
 
 #[cfg(feature = "std")]
-#[cfg_attr(docsrs, doc(cfg(feature = "std")))]
 impl<R: Rng> std::iter::FusedIterator for V7Generator<R> {}
 
 /// A mock random number generator for testing.

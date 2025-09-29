@@ -68,10 +68,17 @@
 //!
 //! Optional features:
 //!
+//! - `rand09` enables an adapter for `rand::RngCore` to use `rand` (v0.9) and any
+//!   other conforming random number generators with [`V7Generator`].
 //! - `serde` enables the serialization and deserialization of [`Uuid`] objects.
 //! - `uuid` (together with `global_gen`) enables the [`new_v7()`] function that
 //!   returns the popular [uuid](https://crates.io/crates/uuid) crate's [`Uuid`](uuid::Uuid)
 //!   objects.
+//! - `rand08` enables an adapter for `rand::RngCore` to use `rand` (v0.8) and any
+//!   other conforming random number generators with [`V7Generator`]. Currently, this
+//!   feature is always enabled and cannot be turned off. This behavior is
+//!   deprecated and for backward compatibility only. Enable this feature explicitly
+//!   when needed.
 //!
 //! # Other functionality
 //!
@@ -117,7 +124,6 @@ pub use global_gen::{uuid4, uuid7};
 
 /// Generates a UUIDv7 and returns it as an instance of [`uuid::Uuid`].
 #[cfg(all(feature = "global_gen", feature = "uuid"))]
-#[cfg_attr(docsrs, doc(cfg(all(feature = "global_gen", feature = "uuid"))))]
 pub fn new_v7() -> uuid::Uuid {
     uuid7().into()
 }

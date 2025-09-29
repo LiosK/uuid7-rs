@@ -1,4 +1,9 @@
 //!  Integration with `rand` (v0.8) crate.
+//!
+//!  Currently, this module is always enabled and cannot be turned off. This behavior is deprecated
+//!  and for backward compatibility only. Enable `rand08` crate feature explicitly when needed.
+
+#![cfg_attr(docsrs, doc(cfg(feature = "rand08")))]
 
 use super::{Rng, V7Generator};
 use rand_core06::RngCore;

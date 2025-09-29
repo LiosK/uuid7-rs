@@ -5,6 +5,7 @@
 ### Added
 
 - `rand09` crate feature to integrate `rand` v0.9
+- `rand08` crate feature to explicitly enable `rand` v0.8 integration
 
 ### Changed
 

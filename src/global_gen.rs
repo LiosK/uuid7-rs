@@ -1,7 +1,6 @@
 //! Default generator and entry point functions.
 
 #![cfg(feature = "global_gen")]
-#![cfg_attr(docsrs, doc(cfg(feature = "global_gen")))]
 
 use std::sync;
 

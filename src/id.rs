@@ -288,7 +288,6 @@ pub enum Variant {
 }
 
 #[cfg(feature = "std")]
-#[cfg_attr(docsrs, doc(cfg(feature = "std")))]
 mod with_std {
     use super::{ParseError, Uuid};
 
@@ -310,7 +309,6 @@ mod with_std {
 }
 
 #[cfg(feature = "uuid")]
-#[cfg_attr(docsrs, doc(cfg(feature = "uuid")))]
 mod with_uuid {
     use super::Uuid;
 
@@ -328,7 +326,6 @@ mod with_uuid {
 }
 
 #[cfg(feature = "serde")]
-#[cfg_attr(docsrs, doc(cfg(feature = "serde")))]
 mod with_serde {
     use super::{fmt, str, Uuid};
     use serde::{de, Deserializer, Serializer};
