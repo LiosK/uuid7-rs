@@ -6,6 +6,11 @@
 
 - `rand09` crate feature to integrate `rand` v0.9
 
+### Changed
+
+- Internal random number generator used by `global_gen` crate feature from
+  `rand` v0.8 to v0.9
+
 ## v1.1.0 - 2024-09-07
 
 ### Changed

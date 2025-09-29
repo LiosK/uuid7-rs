@@ -48,7 +48,7 @@ pub fn uuid4() -> Uuid {
 }
 
 mod inner {
-    use rand09::rngs::{OsRng, ReseedingRng};
+    use rand::rngs::{OsRng, ReseedingRng};
     use rand_chacha::ChaCha12Core;
 
     use crate::generator::{Rng, V7Generator};
@@ -56,17 +56,17 @@ mod inner {
     /// The type alias for the random number generator of the global generator.
     ///
     /// The global generator currently employs [`ChaCha12Core`] with [`ReseedingRng`] wrapper to
-    /// emulate the strategy used by [`rand09::rngs::ThreadRng`].
+    /// emulate the strategy used by [`rand::rngs::ThreadRng`].
     #[derive(Debug)]
     pub struct GlobalGenRng(ReseedingRng<ChaCha12Core, OsRng>);
 
     impl Rng for GlobalGenRng {
         fn next_u32(&mut self) -> u32 {
-            rand09::RngCore::next_u32(&mut self.0)
+            rand::RngCore::next_u32(&mut self.0)
         }
 
         fn next_u64(&mut self) -> u64 {
-            rand09::RngCore::next_u64(&mut self.0)
+            rand::RngCore::next_u64(&mut self.0)
         }
     }
 

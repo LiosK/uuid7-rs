@@ -86,9 +86,11 @@
 //! aspects of the UUIDv7 generation:
 //!
 //! ```rust
+//! # #[cfg(feature = "rand09")]
+//! # {
 //! use uuid7::V7Generator;
 //!
-//! let mut g = V7Generator::with_rand08(rand::rngs::OsRng);
+//! let mut g = V7Generator::with_rand09(rand::rng());
 //! let custom_unix_ts_ms = 0x0123_4567_8901u64;
 //! let x = g.generate_or_reset_core(custom_unix_ts_ms, 10_000);
 //! println!("{}", x);
@@ -97,6 +99,7 @@
 //!     .generate_or_abort_core(custom_unix_ts_ms, 10_000)
 //!     .expect("clock went backwards by more than 10_000 milliseconds");
 //! println!("{}", y);
+//! # }
 //! ```
 
 #![cfg_attr(not(feature = "std"), no_std)]

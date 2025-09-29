@@ -26,11 +26,14 @@ pub trait Rng {
 /// # Examples
 ///
 /// ```rust
-/// use rand::rngs::OsRng;
+/// # #[cfg(feature = "rand09")]
+/// # {
+/// use rand::{rngs::StdRng, SeedableRng as _};
 /// use std::{sync, thread};
 /// use uuid7::V7Generator;
 ///
-/// let g = sync::Arc::new(sync::Mutex::new(V7Generator::with_rand08(OsRng)));
+/// let rng = StdRng::from_os_rng();
+/// let g = sync::Arc::new(sync::Mutex::new(V7Generator::with_rand09(rng)));
 /// thread::scope(|s| {
 ///     for i in 0..4 {
 ///         let g = sync::Arc::clone(&g);
@@ -42,6 +45,7 @@ pub trait Rng {
 ///         });
 ///     }
 /// });
+/// # }
 /// ```
 ///
 /// # Generator functions
@@ -81,7 +85,7 @@ pub struct V7Generator<R> {
 impl<R: Rng> V7Generator<R> {
     /// Creates a generator instance.
     ///
-    /// Use [`V7Generator::with_rand08()`] to create a generator with the random number generators
+    /// Use [`V7Generator::with_rand09()`] to create a generator with the random number generators
     /// from `rand` crate. Although this constructor accepts `rand::RngCore` (v0.8) types for
     /// historical reasons, such behavior is deprecated and will be removed in the future.
     pub const fn new(rng: R) -> Self {
@@ -216,13 +220,16 @@ impl<R: Rng> V7Generator<R> {
 /// # Examples
 ///
 /// ```rust
+/// # #[cfg(feature = "rand09")]
+/// # {
 /// use uuid7::V7Generator;
 ///
-/// V7Generator::with_rand08(rand::thread_rng())
+/// V7Generator::with_rand09(rand::rng())
 ///     .enumerate()
 ///     .skip(4)
 ///     .take(4)
 ///     .for_each(|(i, e)| println!("[{}] {}", i, e));
+/// # }
 /// ```
 #[cfg(feature = "std")]
 #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
@@ -242,18 +249,30 @@ impl<R: Rng> Iterator for V7Generator<R> {
 #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
 impl<R: Rng> std::iter::FusedIterator for V7Generator<R> {}
 
-#[cfg(feature = "std")]
-#[cfg(test)]
-mod tests_generate_or_reset {
-    use super::{with_rand08, V7Generator};
+/// A mock random number generator for testing.
+#[cfg(all(test, feature = "std"))]
+struct MockRng;
 
-    type ThreadGen = V7Generator<with_rand08::Adapter<rand::rngs::ThreadRng>>;
+#[cfg(all(test, feature = "std"))]
+impl Rng for MockRng {
+    fn next_u32(&mut self) -> u32 {
+        rand::random()
+    }
+
+    fn next_u64(&mut self) -> u64 {
+        rand::random()
+    }
+}
+
+#[cfg(all(test, feature = "std"))]
+mod tests_generate_or_reset {
+    use super::{MockRng, V7Generator};
 
     /// Generates increasing UUIDs even with decreasing or constant timestamp
     #[test]
     fn generates_increasing_uuids_even_with_decreasing_or_constant_timestamp() {
         let ts = 0x0123_4567_89abu64;
-        let mut g: ThreadGen = Default::default();
+        let mut g = V7Generator::new(MockRng);
         let mut prev = g.generate_or_reset_core(ts, 10_000);
         assert_eq!(prev.as_bytes()[..6], ts.to_be_bytes()[2..]);
         for i in 0..100_000u64 {
@@ -268,7 +287,7 @@ mod tests_generate_or_reset {
     #[test]
     fn breaks_increasing_order_of_uuids_if_timestamp_goes_backwards_a_lot() {
         let ts = 0x0123_4567_89abu64;
-        let mut g: ThreadGen = Default::default();
+        let mut g = V7Generator::new(MockRng);
         let mut prev = g.generate_or_reset_core(ts, 10_000);
         assert_eq!(prev.as_bytes()[..6], ts.to_be_bytes()[2..]);
 
@@ -286,18 +305,15 @@ mod tests_generate_or_reset {
     }
 }
 
-#[cfg(feature = "std")]
-#[cfg(test)]
+#[cfg(all(test, feature = "std"))]
 mod tests_generate_or_abort {
-    use super::{with_rand08, V7Generator};
-
-    type ThreadGen = V7Generator<with_rand08::Adapter<rand::rngs::ThreadRng>>;
+    use super::{MockRng, V7Generator};
 
     /// Generates increasing UUIDs even with decreasing or constant timestamp
     #[test]
     fn generates_increasing_uuids_even_with_decreasing_or_constant_timestamp() {
         let ts = 0x0123_4567_89abu64;
-        let mut g: ThreadGen = Default::default();
+        let mut g = V7Generator::new(MockRng);
         let mut prev = g.generate_or_abort_core(ts, 10_000).unwrap();
         assert_eq!(prev.as_bytes()[..6], ts.to_be_bytes()[2..]);
         for i in 0..100_000u64 {
@@ -312,7 +328,7 @@ mod tests_generate_or_abort {
     #[test]
     fn returns_none_if_timestamp_goes_backwards_a_lot() {
         let ts = 0x0123_4567_89abu64;
-        let mut g: ThreadGen = Default::default();
+        let mut g = V7Generator::new(MockRng);
         let prev = g.generate_or_abort_core(ts, 10_000).unwrap();
         assert_eq!(prev.as_bytes()[..6], ts.to_be_bytes()[2..]);
 
