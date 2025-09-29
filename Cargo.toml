@@ -24,8 +24,8 @@ serde_test = "1.0"
 [features]
 default = ["global_gen"]
 std = ["fstr/std"]
-rand09 = ["dep:rand_core09"]
 global_gen = ["std", "dep:rand", "dep:rand_chacha"]
+rand09 = ["dep:rand_core09"]
 serde = ["dep:serde"]
 uuid = ["dep:uuid"]
 
