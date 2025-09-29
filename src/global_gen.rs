@@ -48,18 +48,27 @@ pub fn uuid4() -> Uuid {
 }
 
 mod inner {
-    use rand::rngs::{adapter::ReseedingRng, OsRng};
+    use rand09::rngs::{OsRng, ReseedingRng};
     use rand_chacha::ChaCha12Core;
 
-    use crate::generator::{with_rand08, V7Generator};
+    use crate::generator::{Rng, V7Generator};
 
     /// The type alias for the random number generator of the global generator.
     ///
     /// The global generator currently employs [`ChaCha12Core`] with [`ReseedingRng`] wrapper to
-    /// emulate the strategy used by [`rand::rngs::ThreadRng`].
-    ///
-    /// [`rand::rngs::ThreadRng`]: https://docs.rs/rand/0.8.5/rand/rngs/struct.ThreadRng.html
-    type GlobalGenRng = with_rand08::Adapter<ReseedingRng<ChaCha12Core, OsRng>>;
+    /// emulate the strategy used by [`rand09::rngs::ThreadRng`].
+    #[derive(Debug)]
+    pub struct GlobalGenRng(ReseedingRng<ChaCha12Core, OsRng>);
+
+    impl Rng for GlobalGenRng {
+        fn next_u32(&mut self) -> u32 {
+            rand09::RngCore::next_u32(&mut self.0)
+        }
+
+        fn next_u64(&mut self) -> u64 {
+            rand09::RngCore::next_u64(&mut self.0)
+        }
+    }
 
     /// A thin wrapper to reset the state when the process ID changes (i.e., upon Unix forks).
     #[derive(Debug)]
@@ -71,13 +80,13 @@ mod inner {
 
     impl Default for GlobalGenInner {
         fn default() -> Self {
-            use rand::SeedableRng as _;
-            let rng = ChaCha12Core::from_rng(OsRng)
-                .expect("uuid7: could not initialize global generator");
             Self {
                 #[cfg(unix)]
                 pid: std::process::id(),
-                generator: V7Generator::with_rand08(ReseedingRng::new(rng, 1024 * 64, OsRng)),
+                generator: V7Generator::new(GlobalGenRng(
+                    ReseedingRng::new(1024 * 64, OsRng)
+                        .expect("uuid7: could not initialize global generator"),
+                )),
             }
         }
     }
