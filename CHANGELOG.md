@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- `rand09` crate feature to integrate `rand` v0.9
+
 ## v1.1.0 - 2024-09-07
 
 ### Changed

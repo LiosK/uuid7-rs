@@ -1,7 +1,7 @@
 //!  Integration with `rand` (v0.8) crate.
 
 use super::{Rng, V7Generator};
-use rand::RngCore;
+use rand_core06::RngCore;
 
 /// An adapter that implements this crate's [`Rng`] for [`RngCore`] types.
 #[derive(Clone, Eq, PartialEq, Debug, Default)]

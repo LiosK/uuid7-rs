@@ -1,10 +1,10 @@
 //!  Integration with `rand` (v0.9) crate.
 
 use super::{Rng, V7Generator};
-use rand09::RngCore;
+use rand_core09::RngCore;
 
 /// An adapter that implements this crate's [`Rng`] for [`RngCore`] types.
-#[derive(Clone, Eq, PartialEq, Debug, Default)]
+#[derive(Clone, Debug, Default)]
 pub struct Adapter<T>(/** The wrapped [`RngCore`] type. */ pub T);
 
 impl<T: RngCore> Rng for Adapter<T> {
