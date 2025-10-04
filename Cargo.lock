@@ -245,7 +245,7 @@ dependencies = [
 
 [[package]]
 name = "uuid7"
-version = "1.2.0-beta.1"
+version = "1.2.0"
 dependencies = [
  "fstr",
  "rand",

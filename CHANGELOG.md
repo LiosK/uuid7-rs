@@ -1,16 +1,21 @@
 # Changelog
 
-## v1.2.0 - unreleased
+## v1.2.0 - 2025-10-03
 
 ### Added
 
 - `rand09` crate feature to integrate `rand` v0.9
 - `rand08` crate feature to explicitly enable `rand` v0.8 integration
+- `rust-version = "1.70"` key to Cargo.toml
 
 ### Changed
 
 - Internal random number generator used by `global_gen` crate feature from
   `rand` v0.8 to v0.9
+
+## Maintenance
+
+- Updated dev dependencies
 
 ## v1.1.0 - 2024-09-07
 

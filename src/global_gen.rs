@@ -52,7 +52,7 @@ mod inner {
 
     use crate::generator::{Rng, V7Generator};
 
-    /// The type alias for the random number generator of the global generator.
+    /// The new type for the random number generator of the global generator.
     ///
     /// The global generator currently employs [`ChaCha12Core`] with [`ReseedingRng`] wrapper to
     /// emulate the strategy used by [`rand::rngs::ThreadRng`].
