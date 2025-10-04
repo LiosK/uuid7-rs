@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- `Eq` and `PartialEq` derives to `generator::with_rand09::Adapter`
+
 ## v1.2.0 - 2025-10-03
 
 ### Added
@@ -13,7 +19,7 @@
 - Internal random number generator used by `global_gen` crate feature from
   `rand` v0.8 to v0.9
 
-## Maintenance
+### Maintenance
 
 - Updated dev dependencies
 

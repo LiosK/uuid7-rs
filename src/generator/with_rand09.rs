@@ -6,7 +6,7 @@ use super::{Rng, V7Generator};
 use rand_core09::RngCore;
 
 /// An adapter that implements this crate's [`Rng`] for [`RngCore`] types.
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Eq, PartialEq, Debug, Default)]
 pub struct Adapter<T>(/** The wrapped [`RngCore`] type. */ pub T);
 
 impl<T: RngCore> Rng for Adapter<T> {
