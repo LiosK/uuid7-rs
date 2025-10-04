@@ -211,6 +211,7 @@ mod tests_v7 {
         // test if random bits are set to 1 at ~50% probability
         // set margin based on binom dist 99.999% confidence interval
         let margin = 4.417173 * (0.5 * 0.5 / N_SAMPLES as f64).sqrt();
+        #[allow(clippy::needless_range_loop)]
         for i in 96..128 {
             let p = bins[i] as f64 / N_SAMPLES as f64;
             assert!((p - 0.5).abs() < margin, "random bit {}: {}", i, p);
