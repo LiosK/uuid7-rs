@@ -122,10 +122,10 @@ impl Uuid {
     /// For convenience, this function reports [`Variant::Nil`] or [`Variant::Max`] if `self`
     /// represents the Nil or Max UUID, although the Nil and Max UUIDs are technically subsumed
     /// under the variants `0b0` and `0b111`, respectively.
-    pub fn variant(&self) -> Variant {
+    pub const fn variant(&self) -> Variant {
         match self.0[8] >> 4 {
             0b0000..=0b0111 => {
-                if self == &Self::NIL {
+                if u128::from_be_bytes(self.0) == u128::MIN {
                     Variant::Nil
                 } else {
                     Variant::Var0
@@ -134,7 +134,7 @@ impl Uuid {
             0b1000..=0b1011 => Variant::Var10,
             0b1100..=0b1101 => Variant::Var110,
             0b1110..=0b1111 => {
-                if self == &Self::MAX {
+                if u128::from_be_bytes(self.0) == u128::MAX {
                     Variant::Max
                 } else {
                     Variant::VarReserved
@@ -146,7 +146,7 @@ impl Uuid {
 
     /// Returns the version field value of the UUID or `None` if `self` does not have the variant
     /// field value of `0b10`.
-    pub fn version(&self) -> Option<u8> {
+    pub const fn version(&self) -> Option<u8> {
         match self.variant() {
             Variant::Var10 => Some(self.0[6] >> 4),
             _ => None,

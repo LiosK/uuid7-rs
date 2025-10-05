@@ -2,9 +2,8 @@
 
 ## Unreleased
 
-### Added
-
-- `Eq` and `PartialEq` derives to `generator::with_rand09::Adapter`
+- Added `Eq` and `PartialEq` derives to `generator::with_rand09::Adapter`
+- Made `Uuid::variant()` and `Uuid::version()` const-compatible
 
 ## v1.2.0 - 2025-10-03
 
