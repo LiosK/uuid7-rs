@@ -1,5 +1,9 @@
 //! UUIDv7 generator and related types.
 
+#[cfg(not(feature = "std"))]
+use core as std;
+use std::fmt;
+
 use crate::Uuid;
 
 pub mod with_rand08;
@@ -72,7 +76,7 @@ pub trait Rng {
 /// [`generate_or_abort`]: V7Generator::generate_or_abort
 /// [`generate_or_reset_core`]: V7Generator::generate_or_reset_core
 /// [`generate_or_abort_core`]: V7Generator::generate_or_abort_core
-#[derive(Clone, Eq, PartialEq, Debug, Default)]
+#[derive(Clone, Eq, PartialEq, Default)]
 pub struct V7Generator<R> {
     timestamp: u64,
     counter: u64,
@@ -208,6 +212,12 @@ impl<R: Rng> V7Generator<R> {
         bytes[6] = 0x40 | (bytes[6] >> 4);
         bytes[8] = 0x80 | (bytes[8] >> 2);
         Uuid::from(bytes)
+    }
+}
+
+impl<R> fmt::Debug for V7Generator<R> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
+        f.debug_struct("V7Generator").finish()
     }
 }
 

@@ -4,6 +4,7 @@
 
 - Added `Eq` and `PartialEq` derives to `generator::with_rand09::Adapter`
 - Made `Uuid::variant()` and `Uuid::version()` const-compatible
+- Changed impl `Debug` for `V7Generator` to conceal sensitive information
 
 ## v1.2.0 - 2025-10-03
 
