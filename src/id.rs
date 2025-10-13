@@ -21,6 +21,11 @@ impl Uuid {
         &self.0
     }
 
+    /// Returns the `u128` representation of the underlying byte array.
+    const fn to_u128(self) -> u128 {
+        u128::from_be_bytes(self.0)
+    }
+
     /// Creates a UUID byte array from UUIDv7 field values.
     pub const fn from_fields_v7(unix_ts_ms: u64, rand_a: u16, rand_b: u64) -> Self {
         if unix_ts_ms >= 1 << 48 || rand_a >= 1 << 12 || rand_b >= 1 << 62 {
@@ -125,7 +130,7 @@ impl Uuid {
     pub const fn variant(&self) -> Variant {
         match self.0[8] >> 4 {
             0b0000..=0b0111 => {
-                if u128::from_be_bytes(self.0) == u128::MIN {
+                if self.to_u128() == Self::NIL.to_u128() {
                     Variant::Nil
                 } else {
                     Variant::Var0
@@ -134,7 +139,7 @@ impl Uuid {
             0b1000..=0b1011 => Variant::Var10,
             0b1100..=0b1101 => Variant::Var110,
             0b1110..=0b1111 => {
-                if u128::from_be_bytes(self.0) == u128::MAX {
+                if self.to_u128() == Self::MAX.to_u128() {
                     Variant::Max
                 } else {
                     Variant::VarReserved
@@ -226,7 +231,7 @@ impl AsRef<[u8]> for Uuid {
 
 impl From<Uuid> for u128 {
     fn from(src: Uuid) -> Self {
-        Self::from_be_bytes(src.0)
+        src.to_u128()
     }
 }
 
@@ -536,6 +541,9 @@ mod tests {
 
         assert_eq!(Uuid::MAX.variant(), Variant::Max);
         assert_eq!(Uuid::MAX.version(), None);
+
+        assert_eq!(Uuid::from([0x00u8; 16]).variant(), Variant::Nil);
+        assert_eq!(Uuid::from([0xffu8; 16]).variant(), Variant::Max);
 
         let mut bytes = [42u8; 16];
         for oct6 in 0..=0xff {
