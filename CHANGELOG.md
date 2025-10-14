@@ -1,10 +1,11 @@
 # Changelog
 
-## Unreleased
+## v1.3.0 - 2025-10-13
 
+- Marked `Uuid::variant()` and `Uuid::version()` as const-compatible
 - Added `Eq` and `PartialEq` derives to `generator::with_rand09::Adapter`
-- Made `Uuid::variant()` and `Uuid::version()` const-compatible
-- Changed impl `Debug` for `V7Generator` to conceal sensitive information
+- Changed impl `Debug` for `V7Generator` to conceal internal state
+- Updated dev dependencies
 
 ## v1.2.0 - 2025-10-03
 
