@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Migrated to Edition 2024 and upgraded MSRV from 1.70 to 1.85
+
 ## v1.3.0 - 2025-10-13
 
 - Marked `Uuid::variant()` and `Uuid::version()` as const-compatible
