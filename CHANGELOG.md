@@ -1,6 +1,6 @@
 # Changelog
 
-## v1.4.0 - unreleased
+## v1.4.0 - 2025-11-30
 
 - Adjusted `V7Generator` to accept zero as a valid timestamp
 
