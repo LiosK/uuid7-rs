@@ -78,7 +78,8 @@ pub trait Rng {
 /// [`generate_or_abort_core`]: V7Generator::generate_or_abort_core
 #[derive(Clone, Eq, PartialEq, Default)]
 pub struct V7Generator<R> {
-    timestamp: u64,
+    /// Biased by one to distinguish zero (uninitialized) and zero (UNIX epoch).
+    timestamp_biased: u64,
     counter: u64,
 
     /// The random number generator used by the generator.
@@ -93,7 +94,7 @@ impl<R: Rng> V7Generator<R> {
     /// historical reasons, such behavior is deprecated and will be removed in the future.
     pub const fn new(rng: R) -> Self {
         Self {
-            timestamp: 0,
+            timestamp_biased: 0,
             counter: 0,
             rng,
         }
@@ -141,13 +142,13 @@ impl<R: Rng> V7Generator<R> {
     ///
     /// # Panics
     ///
-    /// Panics if `unix_ts_ms` is not a 48-bit positive integer.
+    /// Panics if `unix_ts_ms` is not a 48-bit unsigned integer.
     pub fn generate_or_reset_core(&mut self, unix_ts_ms: u64, rollback_allowance: u64) -> Uuid {
         if let Some(value) = self.generate_or_abort_core(unix_ts_ms, rollback_allowance) {
             value
         } else {
             // reset state and resume
-            self.timestamp = 0;
+            self.timestamp_biased = 0;
             self.generate_or_abort_core(unix_ts_ms, rollback_allowance)
                 .unwrap()
         }
@@ -163,7 +164,7 @@ impl<R: Rng> V7Generator<R> {
     ///
     /// # Panics
     ///
-    /// Panics if `unix_ts_ms` is not a 48-bit positive integer.
+    /// Panics if `unix_ts_ms` is not a 48-bit unsigned integer.
     pub fn generate_or_abort_core(
         &mut self,
         unix_ts_ms: u64,
@@ -172,23 +173,24 @@ impl<R: Rng> V7Generator<R> {
         const MAX_COUNTER: u64 = (1 << 42) - 1;
 
         assert!(
-            0 < unix_ts_ms && unix_ts_ms < 1 << 48,
-            "`unix_ts_ms` must be a 48-bit positive integer"
+            unix_ts_ms < 1 << 48,
+            "`unix_ts_ms` must be a 48-bit unsigned integer"
         );
         assert!(
             rollback_allowance < 1 << 48,
             "`rollback_allowance` out of reasonable range"
         );
 
-        if unix_ts_ms > self.timestamp {
-            self.timestamp = unix_ts_ms;
+        let unix_ts_ms = unix_ts_ms + 1;
+        if unix_ts_ms > self.timestamp_biased {
+            self.timestamp_biased = unix_ts_ms;
             self.counter = self.rng.next_u64() & MAX_COUNTER;
-        } else if unix_ts_ms + rollback_allowance >= self.timestamp {
+        } else if unix_ts_ms + rollback_allowance >= self.timestamp_biased {
             // go on with previous timestamp if new one is not much smaller
             self.counter += 1;
             if self.counter > MAX_COUNTER {
                 // increment timestamp at counter overflow
-                self.timestamp += 1;
+                self.timestamp_biased += 1;
                 self.counter = self.rng.next_u64() & MAX_COUNTER;
             }
         } else {
@@ -197,7 +199,7 @@ impl<R: Rng> V7Generator<R> {
         }
 
         Some(Uuid::from_fields_v7(
-            self.timestamp,
+            self.timestamp_biased - 1,
             (self.counter >> 30) as u16,
             ((self.counter & 0x3fff_ffff) << 32) | self.rng.next_u32() as u64,
         ))

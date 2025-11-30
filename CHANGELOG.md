@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.4.0 - unreleased
+
+- Adjusted `V7Generator` to accept zero as a valid timestamp
+
 ## v1.3.0 - 2025-10-13
 
 - Marked `Uuid::variant()` and `Uuid::version()` as const-compatible
