@@ -3,6 +3,10 @@
 ## v1.5.0 - unreleased
 
 - Added `TimeSource` trait to allow custom timestamp sources for `V7Generator`
+- Added `with_rand_and_time_sources()` constructor to `V7Generator` to accept
+  both custom random number generators and time sources
+- Renamed `Rng` trait to `RandSource` for clarity and consistency, re-exporting
+  the old name as a deprecated alias to maintain backward compatibility
 
 ## v1.4.0 - 2025-11-30
 

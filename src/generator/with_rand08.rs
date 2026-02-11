@@ -5,14 +5,14 @@
 
 #![cfg_attr(docsrs, doc(cfg(feature = "rand08")))]
 
-use super::{Rng, V7Generator};
+use super::{RandSource, V7Generator};
 use rand_core06::RngCore;
 
-/// An adapter that implements this crate's [`Rng`] for [`RngCore`] types.
+/// An adapter that implements this crate's [`RandSource`] for [`RngCore`] types.
 #[derive(Clone, Eq, PartialEq, Debug, Default)]
 pub struct Adapter<T>(/** The wrapped [`RngCore`] type. */ pub T);
 
-impl<T: RngCore> Rng for Adapter<T> {
+impl<T: RngCore> RandSource for Adapter<T> {
     fn next_u32(&mut self) -> u32 {
         self.0.next_u32()
     }
@@ -32,7 +32,7 @@ impl<T: RngCore> V7Generator<Adapter<T>> {
 
 /// This is a deprecated blanket impl retained for backward compatibility. Do not depend on this
 /// impl; use [`V7Generator::with_rand08()`] instead.
-impl<T: RngCore> Rng for T {
+impl<T: RngCore> RandSource for T {
     fn next_u32(&mut self) -> u32 {
         self.next_u32()
     }

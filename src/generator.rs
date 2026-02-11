@@ -10,13 +10,16 @@ pub mod with_rand08;
 pub mod with_rand09;
 
 /// A trait that defines the minimum random number generator interface for [`V7Generator`].
-pub trait Rng {
+pub trait RandSource {
     /// Returns the next random `u32`.
     fn next_u32(&mut self) -> u32;
 
     /// Returns the next random `u64`.
     fn next_u64(&mut self) -> u64;
 }
+
+#[deprecated(since = "1.5.0", note = "use `RandSource` instead")]
+pub use RandSource as Rng;
 
 /// A trait that defines the minimum system clock interface for [`V7Generator`].
 pub trait TimeSource {
@@ -89,7 +92,7 @@ pub struct V7Generator<R, T = StdSystemTime> {
     counter: u64,
 
     /// The random number generator used by the generator.
-    rng: R,
+    rand_source: R,
 
     /// The system clock used by the generator.
     time_source: T,
@@ -101,17 +104,28 @@ impl<R> V7Generator<R> {
     /// Use [`V7Generator::with_rand09()`] to create a generator with the random number generators
     /// from `rand` crate. Although this constructor accepts `rand::RngCore` (v0.8) types for
     /// historical reasons, such behavior is deprecated and will be removed in the future.
-    pub const fn new(rng: R) -> Self {
+    pub const fn new(rand_source: R) -> Self {
+        Self::with_rand_and_time_sources(rand_source, StdSystemTime)
+    }
+}
+
+impl<R, T> V7Generator<R, T> {
+    /// Creates a generator instance with specified random number generator and system clock.
+    ///
+    /// Use [`with_rand09::Adapter`] to pass a random number generator from `rand` crate. Although
+    /// this constructor accepts `rand::RngCore` (v0.8) types for historical reasons, such behavior
+    /// is deprecated and will be removed in the future.
+    pub const fn with_rand_and_time_sources(rand_source: R, time_source: T) -> Self {
         Self {
             timestamp_biased: 0,
             counter: 0,
-            rng,
-            time_source: StdSystemTime,
+            rand_source,
+            time_source,
         }
     }
 }
 
-impl<R: Rng, T: TimeSource> V7Generator<R, T> {
+impl<R: RandSource, T: TimeSource> V7Generator<R, T> {
     /// Generates a new UUIDv7 object from the current timestamp, or resets the generator upon
     /// significant timestamp rollback.
     ///
@@ -131,7 +145,7 @@ impl<R: Rng, T: TimeSource> V7Generator<R, T> {
     }
 }
 
-impl<R: Rng, T> V7Generator<R, T> {
+impl<R: RandSource, T> V7Generator<R, T> {
     /// Generates a new UUIDv7 object from the `unix_ts_ms` passed, or resets the generator upon
     /// significant timestamp rollback.
     ///
@@ -184,14 +198,14 @@ impl<R: Rng, T> V7Generator<R, T> {
         let unix_ts_ms = unix_ts_ms + 1;
         if unix_ts_ms > self.timestamp_biased {
             self.timestamp_biased = unix_ts_ms;
-            self.counter = self.rng.next_u64() & MAX_COUNTER;
+            self.counter = self.rand_source.next_u64() & MAX_COUNTER;
         } else if unix_ts_ms + rollback_allowance >= self.timestamp_biased {
             // go on with previous timestamp if new one is not much smaller
             self.counter += 1;
             if self.counter > MAX_COUNTER {
                 // increment timestamp at counter overflow
                 self.timestamp_biased += 1;
-                self.counter = self.rng.next_u64() & MAX_COUNTER;
+                self.counter = self.rand_source.next_u64() & MAX_COUNTER;
             }
         } else {
             // abort if clock went backwards to unbearable extent
@@ -201,7 +215,7 @@ impl<R: Rng, T> V7Generator<R, T> {
         Some(Uuid::from_fields_v7(
             self.timestamp_biased - 1,
             (self.counter >> 30) as u16,
-            ((self.counter & 0x3fff_ffff) << 32) | self.rng.next_u32() as u64,
+            ((self.counter & 0x3fff_ffff) << 32) | self.rand_source.next_u32() as u64,
         ))
     }
 
@@ -209,8 +223,8 @@ impl<R: Rng, T> V7Generator<R, T> {
     #[cfg(feature = "global_gen")]
     pub(crate) fn generate_v4(&mut self) -> Uuid {
         let mut bytes = [0u8; 16];
-        bytes[..8].copy_from_slice(&self.rng.next_u64().to_le_bytes());
-        bytes[8..].copy_from_slice(&self.rng.next_u64().to_le_bytes());
+        bytes[..8].copy_from_slice(&self.rand_source.next_u64().to_le_bytes());
+        bytes[8..].copy_from_slice(&self.rand_source.next_u64().to_le_bytes());
         bytes[6] = 0x40 | (bytes[6] >> 4);
         bytes[8] = 0x80 | (bytes[8] >> 2);
         Uuid::from(bytes)
@@ -240,7 +254,7 @@ impl<R, T> fmt::Debug for V7Generator<R, T> {
 ///     .for_each(|(i, e)| println!("[{}] {}", i, e));
 /// # }
 /// ```
-impl<R: Rng, T: TimeSource> Iterator for V7Generator<R, T> {
+impl<R: RandSource, T: TimeSource> Iterator for V7Generator<R, T> {
     type Item = Uuid;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -252,7 +266,7 @@ impl<R: Rng, T: TimeSource> Iterator for V7Generator<R, T> {
     }
 }
 
-impl<R: Rng, T: TimeSource> iter::FusedIterator for V7Generator<R, T> {}
+impl<R: RandSource, T: TimeSource> iter::FusedIterator for V7Generator<R, T> {}
 
 /// The default [`TimeSource`] that uses [`std::time::SystemTime`].
 #[derive(Clone, Debug, Eq, PartialEq, Default)]
@@ -274,7 +288,7 @@ impl TimeSource for StdSystemTime {
 struct MockRng;
 
 #[cfg(all(test, feature = "std"))]
-impl Rng for MockRng {
+impl RandSource for MockRng {
     fn next_u32(&mut self) -> u32 {
         rand::random()
     }

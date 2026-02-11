@@ -50,7 +50,7 @@ mod inner {
     use rand::rngs::{OsRng, ReseedingRng};
     use rand_chacha::ChaCha12Core;
 
-    use crate::generator::{Rng, V7Generator};
+    use crate::generator::{RandSource, V7Generator};
 
     /// The new type for the random number generator of the global generator.
     ///
@@ -59,7 +59,7 @@ mod inner {
     #[derive(Debug)]
     pub struct GlobalGenRng(ReseedingRng<ChaCha12Core, OsRng>);
 
-    impl Rng for GlobalGenRng {
+    impl RandSource for GlobalGenRng {
         fn next_u32(&mut self) -> u32 {
             rand::RngCore::next_u32(&mut self.0)
         }

@@ -2,14 +2,14 @@
 
 #![cfg(feature = "rand09")]
 
-use super::{Rng, V7Generator};
+use super::{RandSource, V7Generator};
 use rand_core09::RngCore;
 
-/// An adapter that implements this crate's [`Rng`] for [`RngCore`] types.
+/// An adapter that implements this crate's [`RandSource`] for [`RngCore`] types.
 #[derive(Clone, Eq, PartialEq, Debug, Default)]
 pub struct Adapter<T>(/** The wrapped [`RngCore`] type. */ pub T);
 
-impl<T: RngCore> Rng for Adapter<T> {
+impl<T: RngCore> RandSource for Adapter<T> {
     fn next_u32(&mut self) -> u32 {
         self.0.next_u32()
     }
