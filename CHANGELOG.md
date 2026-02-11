@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.5.0 - unreleased
+
+- Added `TimeSource` trait to allow custom timestamp sources for `V7Generator`
+
 ## v1.4.0 - 2025-11-30
 
 - Adjusted `V7Generator` to accept zero as a valid timestamp

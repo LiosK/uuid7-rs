@@ -2,7 +2,7 @@
 
 #[cfg(not(feature = "std"))]
 use core as std;
-use std::fmt;
+use std::{fmt, iter};
 
 use crate::Uuid;
 
@@ -16,6 +16,12 @@ pub trait Rng {
 
     /// Returns the next random `u64`.
     fn next_u64(&mut self) -> u64;
+}
+
+/// A trait that defines the minimum system clock interface for [`V7Generator`].
+pub trait TimeSource {
+    /// Returns the current Unix timestamp in milliseconds.
+    fn unix_ts_ms(&mut self) -> u64;
 }
 
 /// Represents a UUIDv7 generator that encapsulates a counter and guarantees the monotonic order of
@@ -77,16 +83,19 @@ pub trait Rng {
 /// [`generate_or_reset_core`]: V7Generator::generate_or_reset_core
 /// [`generate_or_abort_core`]: V7Generator::generate_or_abort_core
 #[derive(Clone, Eq, PartialEq, Default)]
-pub struct V7Generator<R> {
+pub struct V7Generator<R, T = StdSystemTime> {
     /// Biased by one to distinguish zero (uninitialized) and zero (UNIX epoch).
     timestamp_biased: u64,
     counter: u64,
 
     /// The random number generator used by the generator.
     rng: R,
+
+    /// The system clock used by the generator.
+    time_source: T,
 }
 
-impl<R: Rng> V7Generator<R> {
+impl<R> V7Generator<R> {
     /// Creates a generator instance.
     ///
     /// Use [`V7Generator::with_rand09()`] to create a generator with the random number generators
@@ -97,41 +106,32 @@ impl<R: Rng> V7Generator<R> {
             timestamp_biased: 0,
             counter: 0,
             rng,
+            time_source: StdSystemTime,
         }
     }
+}
 
+impl<R: Rng, T: TimeSource> V7Generator<R, T> {
     /// Generates a new UUIDv7 object from the current timestamp, or resets the generator upon
     /// significant timestamp rollback.
     ///
     /// See the [`V7Generator`] type documentation for the description.
-    #[cfg(feature = "std")]
     pub fn generate(&mut self) -> Uuid {
-        use std::time;
-        self.generate_or_reset_core(
-            time::SystemTime::now()
-                .duration_since(time::UNIX_EPOCH)
-                .expect("clock may have gone backwards")
-                .as_millis() as u64,
-            10_000,
-        )
+        let unix_ts_ms = self.time_source.unix_ts_ms();
+        self.generate_or_reset_core(unix_ts_ms, 10_000)
     }
 
     /// Generates a new UUIDv7 object from the current timestamp, or returns `None` upon
     /// significant timestamp rollback.
     ///
     /// See the [`V7Generator`] type documentation for the description.
-    #[cfg(feature = "std")]
     pub fn generate_or_abort(&mut self) -> Option<Uuid> {
-        use std::time;
-        self.generate_or_abort_core(
-            time::SystemTime::now()
-                .duration_since(time::UNIX_EPOCH)
-                .expect("clock may have gone backwards")
-                .as_millis() as u64,
-            10_000,
-        )
+        let unix_ts_ms = self.time_source.unix_ts_ms();
+        self.generate_or_abort_core(unix_ts_ms, 10_000)
     }
+}
 
+impl<R: Rng, T> V7Generator<R, T> {
     /// Generates a new UUIDv7 object from the `unix_ts_ms` passed, or resets the generator upon
     /// significant timestamp rollback.
     ///
@@ -217,7 +217,7 @@ impl<R: Rng> V7Generator<R> {
     }
 }
 
-impl<R> fmt::Debug for V7Generator<R> {
+impl<R, T> fmt::Debug for V7Generator<R, T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
         f.debug_struct("V7Generator").finish()
     }
@@ -240,8 +240,7 @@ impl<R> fmt::Debug for V7Generator<R> {
 ///     .for_each(|(i, e)| println!("[{}] {}", i, e));
 /// # }
 /// ```
-#[cfg(feature = "std")]
-impl<R: Rng> Iterator for V7Generator<R> {
+impl<R: Rng, T: TimeSource> Iterator for V7Generator<R, T> {
     type Item = Uuid;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -253,8 +252,22 @@ impl<R: Rng> Iterator for V7Generator<R> {
     }
 }
 
+impl<R: Rng, T: TimeSource> iter::FusedIterator for V7Generator<R, T> {}
+
+/// The default [`TimeSource`] that uses [`std::time::SystemTime`].
+#[derive(Clone, Debug, Eq, PartialEq, Default)]
+pub struct StdSystemTime;
+
 #[cfg(feature = "std")]
-impl<R: Rng> std::iter::FusedIterator for V7Generator<R> {}
+impl TimeSource for StdSystemTime {
+    fn unix_ts_ms(&mut self) -> u64 {
+        use std::time;
+        time::SystemTime::now()
+            .duration_since(time::UNIX_EPOCH)
+            .expect("clock may have gone backwards")
+            .as_millis() as u64
+    }
+}
 
 /// A mock random number generator for testing.
 #[cfg(all(test, feature = "std"))]
