@@ -332,8 +332,8 @@ mod with_uuid {
 
 #[cfg(feature = "serde")]
 mod with_serde {
-    use super::{Uuid, fmt, str};
-    use serde::{Deserializer, Serializer, de};
+    use super::{fmt, str, Uuid};
+    use serde::{de, Deserializer, Serializer};
 
     impl serde::Serialize for Uuid {
         fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
@@ -387,7 +387,7 @@ mod with_serde {
     #[cfg(test)]
     #[test]
     fn serializes_and_deserializes_prepared_cases_correctly() {
-        use super::{Uuid, tests::EXAMPLE_UUIDS};
+        use super::{tests::EXAMPLE_UUIDS, Uuid};
         use serde_test::{Configure, Token};
 
         for c in EXAMPLE_UUIDS {

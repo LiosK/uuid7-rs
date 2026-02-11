@@ -31,7 +31,7 @@ pub trait Rng {
 /// ```rust
 /// # #[cfg(feature = "rand09")]
 /// # {
-/// use rand::{SeedableRng as _, rngs::StdRng};
+/// use rand::{rngs::StdRng, SeedableRng as _};
 /// use std::{sync, thread};
 /// use uuid7::V7Generator;
 ///
