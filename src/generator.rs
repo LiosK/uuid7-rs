@@ -96,6 +96,9 @@ pub struct V7Generator<R, T = StdSystemTime> {
 
     /// The system clock used by the generator.
     time_source: T,
+
+    /// The amount of `unix_ts_ms` rollback that is considered significant (in milliseconds).
+    rollback_allowance: u64,
 }
 
 impl<R> V7Generator<R> {
@@ -121,7 +124,20 @@ impl<R, T> V7Generator<R, T> {
             counter: 0,
             rand_source,
             time_source,
+            rollback_allowance: 10_000,
         }
+    }
+
+    /// Sets the `rollback_allowance` parameter of the generator.
+    ///
+    /// The `rollback_allowance` parameter specifies the amount of `unix_ts_ms` rollback that is
+    /// considered significant. The default value is `10_000` (milliseconds). See the
+    /// [`V7Generator`] type documentation for the treatment of the significant rollback.
+    pub fn set_rollback_allowance(&mut self, rollback_allowance: u64) {
+        if rollback_allowance < 1 << 48 {
+            panic!("`rollback_allowance` out of reasonable range");
+        }
+        self.rollback_allowance = rollback_allowance;
     }
 }
 
@@ -132,7 +148,7 @@ impl<R: RandSource, T: TimeSource> V7Generator<R, T> {
     /// See the [`V7Generator`] type documentation for the description.
     pub fn generate(&mut self) -> Uuid {
         let unix_ts_ms = self.time_source.unix_ts_ms();
-        self.generate_or_reset_core(unix_ts_ms, 10_000)
+        self.generate_or_reset_core(unix_ts_ms, self.rollback_allowance)
     }
 
     /// Generates a new UUIDv7 object from the current timestamp, or returns `None` upon
@@ -141,7 +157,7 @@ impl<R: RandSource, T: TimeSource> V7Generator<R, T> {
     /// See the [`V7Generator`] type documentation for the description.
     pub fn generate_or_abort(&mut self) -> Option<Uuid> {
         let unix_ts_ms = self.time_source.unix_ts_ms();
-        self.generate_or_abort_core(unix_ts_ms, 10_000)
+        self.generate_or_abort_core(unix_ts_ms, self.rollback_allowance)
     }
 }
 

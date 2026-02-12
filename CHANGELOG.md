@@ -7,6 +7,8 @@
   both custom random number generators and time sources
 - Renamed `Rng` trait to `RandSource` for clarity and consistency, re-exporting
   the old name as a deprecated alias to maintain backward compatibility
+- Added `set_rollback_allowance()` method to `V7Generator` to configure the
+  maximum allowed timestamp rollback for each generator
 
 ## v1.4.0 - 2025-11-30
 
