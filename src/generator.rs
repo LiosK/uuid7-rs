@@ -85,7 +85,7 @@ pub trait TimeSource {
 /// [`generate_or_abort`]: V7Generator::generate_or_abort
 /// [`generate_or_reset_core`]: V7Generator::generate_or_reset_core
 /// [`generate_or_abort_core`]: V7Generator::generate_or_abort_core
-#[derive(Clone, Eq, PartialEq, Default)]
+#[derive(Clone, Eq, PartialEq)]
 pub struct V7Generator<R, T = StdSystemTime> {
     /// Biased by one to distinguish zero (uninitialized) and zero (UNIX epoch).
     timestamp_biased: u64,
@@ -228,6 +228,12 @@ impl<R: RandSource, T> V7Generator<R, T> {
         bytes[6] = 0x40 | (bytes[6] >> 4);
         bytes[8] = 0x80 | (bytes[8] >> 2);
         Uuid::from(bytes)
+    }
+}
+
+impl<R: Default, T: Default> Default for V7Generator<R, T> {
+    fn default() -> Self {
+        Self::with_rand_and_time_sources(R::default(), T::default())
     }
 }
 
