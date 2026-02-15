@@ -253,9 +253,12 @@ impl<R: Default, T: Default> Default for V7Generator<R, T> {
     }
 }
 
-impl<R, T> fmt::Debug for V7Generator<R, T> {
+impl<R, T: fmt::Debug> fmt::Debug for V7Generator<R, T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
-        f.debug_struct("V7Generator").finish()
+        f.debug_struct("V7Generator")
+            .field("time_source", &self.time_source)
+            .field("rollback_allowance", &self.rollback_allowance)
+            .finish()
     }
 }
 
