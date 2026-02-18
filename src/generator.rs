@@ -308,30 +308,15 @@ impl TimeSource for StdSystemTime {
     }
 }
 
-/// A mock random number generator for testing.
-#[cfg(all(test, feature = "std"))]
-struct MockRng;
-
-#[cfg(all(test, feature = "std"))]
-impl RandSource for MockRng {
-    fn next_u32(&mut self) -> u32 {
-        rand::random()
-    }
-
-    fn next_u64(&mut self) -> u64 {
-        rand::random()
-    }
-}
-
-#[cfg(all(test, feature = "std"))]
+#[cfg(test)]
 mod tests_generate_or_reset {
-    use super::{MockRng, V7Generator};
+    use super::V7Generator;
 
     /// Generates increasing UUIDs even with decreasing or constant timestamp
     #[test]
     fn generates_increasing_uuids_even_with_decreasing_or_constant_timestamp() {
         let ts = 0x0123_4567_89abu64;
-        let mut g = V7Generator::new(MockRng);
+        let mut g = V7Generator::for_testing();
         let mut prev = g.generate_or_reset_core(ts, 10_000);
         assert_eq!(prev.as_bytes()[..6], ts.to_be_bytes()[2..]);
         for i in 0..100_000u64 {
@@ -346,7 +331,7 @@ mod tests_generate_or_reset {
     #[test]
     fn breaks_increasing_order_of_uuids_if_timestamp_goes_backwards_a_lot() {
         let ts = 0x0123_4567_89abu64;
-        let mut g = V7Generator::new(MockRng);
+        let mut g = V7Generator::for_testing();
         let mut prev = g.generate_or_reset_core(ts, 10_000);
         assert_eq!(prev.as_bytes()[..6], ts.to_be_bytes()[2..]);
 
@@ -364,15 +349,15 @@ mod tests_generate_or_reset {
     }
 }
 
-#[cfg(all(test, feature = "std"))]
+#[cfg(test)]
 mod tests_generate_or_abort {
-    use super::{MockRng, V7Generator};
+    use super::V7Generator;
 
     /// Generates increasing UUIDs even with decreasing or constant timestamp
     #[test]
     fn generates_increasing_uuids_even_with_decreasing_or_constant_timestamp() {
         let ts = 0x0123_4567_89abu64;
-        let mut g = V7Generator::new(MockRng);
+        let mut g = V7Generator::for_testing();
         let mut prev = g.generate_or_abort_core(ts, 10_000).unwrap();
         assert_eq!(prev.as_bytes()[..6], ts.to_be_bytes()[2..]);
         for i in 0..100_000u64 {
@@ -387,7 +372,7 @@ mod tests_generate_or_abort {
     #[test]
     fn returns_none_if_timestamp_goes_backwards_a_lot() {
         let ts = 0x0123_4567_89abu64;
-        let mut g = V7Generator::new(MockRng);
+        let mut g = V7Generator::for_testing();
         let prev = g.generate_or_abort_core(ts, 10_000).unwrap();
         assert_eq!(prev.as_bytes()[..6], ts.to_be_bytes()[2..]);
 
@@ -401,3 +386,6 @@ mod tests_generate_or_abort {
         assert!(curr.is_none());
     }
 }
+
+#[cfg(test)]
+mod tests;
