@@ -65,21 +65,23 @@ and thus breaks the increasing order of generated IDs.
 
 Default features:
 
-- `std` integrates the library with, among others, the system clock to draw
-  current timestamps. Without `std`, this crate provides limited functionality
-  available under `no_std` environments.
-- `global_gen` (implies `std`) enables the primary `uuid7()` function and the
-  process-wide global generator under the hood.
+- `std` enables, among others, the default timestamp source for `V7Generator`
+  using `std::time`. Without `std`, users must provide their own time source
+  implementing the `TimeSource` trait.
+- `global_gen` (implies `std`) provides the process-wide default UUIDv7
+  generator and enables the primary `uuid7()` function.
+- `rand08`: See below.
 
 Optional features:
 
-- `rand09` enables `V7Generator::with_rand09()` that integrates `rand` crate
-  (v0.9).
-- `rand08` enables `V7Generator::with_rand08()` that integrates `rand` crate
-  (v0.8). Currently, this feature is always enabled and cannot be turned off.
-  This behavior is deprecated and for backward compatibility only. Enable this
-  feature explicitly when needed.
-- `serde` enables the serialization and deserialization of `Uuid` objects.
+- `serde` enables serialization/deserialization of `Uuid` via serde.
+- `rand09` enables an adapter for `rand::RngCore` to use `rand` (v0.9) and any
+  other conforming random number generators with `V7Generator`.
+- `rand08` enables an adapter for `rand::RngCore` to use `rand` (v0.8) and any
+  other conforming random number generators with `V7Generator`. Currently, this
+  feature is always enabled and cannot be turned off. This behavior is
+  deprecated and for backward compatibility only. Enable `rand08` explicitly
+  when needed.
 - `uuid` (together with `global_gen`) enables the `new_v7()` function that
   returns the popular [uuid](https://crates.io/crates/uuid) crate's `Uuid`
   objects.

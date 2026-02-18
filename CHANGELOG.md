@@ -12,6 +12,7 @@
 - Added `generate_or_reset_with_ts()` and `generate_or_abort_with_ts()` to
   `V7Generator`
 - Added and refactored test cases to cover new features.
+- Minor documentation updates.
 
 ## v1.4.0 - 2025-11-30
 

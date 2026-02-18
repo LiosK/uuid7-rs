@@ -6,9 +6,6 @@ use std::{fmt, iter};
 
 use crate::Uuid;
 
-pub mod with_rand08;
-pub mod with_rand09;
-
 /// A trait that defines the minimum random number generator interface for [`V7Generator`].
 pub trait RandSource {
     /// Returns the next random `u32`.
@@ -20,6 +17,9 @@ pub trait RandSource {
 
 #[deprecated(since = "1.5.0", note = "use `RandSource` instead")]
 pub use RandSource as Rng;
+
+pub mod with_rand08;
+pub mod with_rand09;
 
 /// A trait that defines the minimum system clock interface for [`V7Generator`].
 pub trait TimeSource {
@@ -79,7 +79,7 @@ pub trait TimeSource {
 ///     timestamp, breaking the increasing order of UUIDs.
 /// 2.  `or_abort` variants abort and return `None` immediately.
 ///
-/// The `with_ts` functions accepts the `unix_ts_ms` as an argument.
+/// The `with_ts` functions accepts the timestamp as an argument.
 ///
 /// [`generate`]: V7Generator::generate
 /// [`generate_or_abort`]: V7Generator::generate_or_abort
@@ -102,7 +102,7 @@ pub struct V7Generator<R, T = StdSystemTime> {
 }
 
 impl<R> V7Generator<R> {
-    /// Creates a generator instance.
+    /// Creates a generator object.
     ///
     /// Use [`V7Generator::with_rand09()`] to create a generator with the random number generators
     /// from `rand` crate. Although this constructor accepts `rand::RngCore` (v0.8) types for
@@ -113,7 +113,7 @@ impl<R> V7Generator<R> {
 }
 
 impl<R, T> V7Generator<R, T> {
-    /// Creates a generator instance with specified random number generator and system clock.
+    /// Creates a generator object with specified random number generator and system clock.
     ///
     /// Use [`with_rand09::Adapter`] to pass a random number generator from `rand` crate. Although
     /// this constructor accepts `rand::RngCore` (v0.8) types for historical reasons, such behavior
@@ -124,7 +124,7 @@ impl<R, T> V7Generator<R, T> {
             counter: 0,
             rand_source,
             time_source,
-            rollback_allowance: 10_000,
+            rollback_allowance: 10_000, // 10 seconds in milliseconds
         }
     }
 
