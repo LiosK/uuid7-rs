@@ -9,7 +9,7 @@
   the old name as a deprecated alias to maintain backward compatibility
 - Added `set_rollback_allowance()` method to `V7Generator` to configure the
   maximum allowed timestamp rollback for each generator
-- Refactored test cases.
+- Added and refactored test cases to cover new features.
 
 ## v1.4.0 - 2025-11-30
 

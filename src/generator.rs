@@ -134,7 +134,7 @@ impl<R, T> V7Generator<R, T> {
     /// considered significant. The default value is `10_000` (milliseconds). See the
     /// [`V7Generator`] type documentation for the treatment of the significant rollback.
     pub fn set_rollback_allowance(&mut self, rollback_allowance: u64) {
-        if rollback_allowance < 1 << 48 {
+        if rollback_allowance >= 1 << 48 {
             panic!("`rollback_allowance` out of reasonable range");
         }
         self.rollback_allowance = rollback_allowance;
