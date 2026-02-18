@@ -64,12 +64,12 @@ pub trait TimeSource {
 ///
 /// The generator comes with four different methods that generate a UUIDv7:
 ///
-/// | Flavor                     | Timestamp | On big clock rewind |
-/// | -------------------------- | --------- | ------------------- |
-/// | [`generate`]               | Now       | Resets generator    |
-/// | [`generate_or_abort`]      | Now       | Returns `None`      |
-/// | [`generate_or_reset_core`] | Argument  | Resets generator    |
-/// | [`generate_or_abort_core`] | Argument  | Returns `None`      |
+/// | Flavor                        | Timestamp | On big clock rewind |
+/// | ----------------------------- | --------- | ------------------- |
+/// | [`generate`]                  | Now       | Resets generator    |
+/// | [`generate_or_abort`]         | Now       | Returns `None`      |
+/// | [`generate_or_reset_with_ts`] | Argument  | Resets generator    |
+/// | [`generate_or_abort_with_ts`] | Argument  | Returns `None`      |
 ///
 /// All of the four return a monotonically increasing UUID by reusing the previous timestamp even
 /// if the one provided is smaller than the immediately preceding UUID's. However, when such a
@@ -79,12 +79,12 @@ pub trait TimeSource {
 ///     timestamp, breaking the increasing order of UUIDs.
 /// 2.  `or_abort` variants abort and return `None` immediately.
 ///
-/// The `core` functions offer low-level primitives to customize the behavior.
+/// The `with_ts` functions accepts the `unix_ts_ms` as an argument.
 ///
 /// [`generate`]: V7Generator::generate
 /// [`generate_or_abort`]: V7Generator::generate_or_abort
-/// [`generate_or_reset_core`]: V7Generator::generate_or_reset_core
-/// [`generate_or_abort_core`]: V7Generator::generate_or_abort_core
+/// [`generate_or_reset_with_ts`]: V7Generator::generate_or_reset_with_ts
+/// [`generate_or_abort_with_ts`]: V7Generator::generate_or_abort_with_ts
 #[derive(Clone, Eq, PartialEq)]
 pub struct V7Generator<R, T = StdSystemTime> {
     /// Biased by one to distinguish zero (uninitialized) and zero (UNIX epoch).
@@ -148,7 +148,7 @@ impl<R: RandSource, T: TimeSource> V7Generator<R, T> {
     /// See the [`V7Generator`] type documentation for the description.
     pub fn generate(&mut self) -> Uuid {
         let unix_ts_ms = self.time_source.unix_ts_ms();
-        self.generate_or_reset_core(unix_ts_ms, self.rollback_allowance)
+        self.generate_or_reset_with_ts(unix_ts_ms)
     }
 
     /// Generates a new UUIDv7 object from the current timestamp, or returns `None` upon
@@ -157,11 +157,29 @@ impl<R: RandSource, T: TimeSource> V7Generator<R, T> {
     /// See the [`V7Generator`] type documentation for the description.
     pub fn generate_or_abort(&mut self) -> Option<Uuid> {
         let unix_ts_ms = self.time_source.unix_ts_ms();
-        self.generate_or_abort_core(unix_ts_ms, self.rollback_allowance)
+        self.generate_or_abort_with_ts(unix_ts_ms)
     }
 }
 
 impl<R: RandSource, T> V7Generator<R, T> {
+    /// Generates a new UUIDv7 object from the `unix_ts_ms` passed, or resets the generator upon
+    /// significant timestamp rollback.
+    ///
+    /// See the [`V7Generator`] type documentation for the description.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `unix_ts_ms` is not a 48-bit unsigned integer.
+    pub fn generate_or_reset_with_ts(&mut self, unix_ts_ms: u64) -> Uuid {
+        if let Some(value) = self.generate_or_abort_with_ts(unix_ts_ms) {
+            value
+        } else {
+            // reset state and resume
+            self.timestamp_biased = 0;
+            self.generate_or_abort_with_ts(unix_ts_ms).unwrap()
+        }
+    }
+
     /// Generates a new UUIDv7 object from the `unix_ts_ms` passed, or resets the generator upon
     /// significant timestamp rollback.
     ///
@@ -182,6 +200,18 @@ impl<R: RandSource, T> V7Generator<R, T> {
             self.generate_or_abort_core(unix_ts_ms, rollback_allowance)
                 .unwrap()
         }
+    }
+
+    /// Generates a new UUIDv7 object from the `unix_ts_ms` passed, or returns `None` upon
+    /// significant timestamp rollback.
+    ///
+    /// See the [`V7Generator`] type documentation for the description.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `unix_ts_ms` is not a 48-bit unsigned integer.
+    pub fn generate_or_abort_with_ts(&mut self, unix_ts_ms: u64) -> Option<Uuid> {
+        self.generate_or_abort_core(unix_ts_ms, self.rollback_allowance)
     }
 
     /// Generates a new UUIDv7 object from the `unix_ts_ms` passed, or returns `None` upon

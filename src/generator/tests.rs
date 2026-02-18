@@ -84,7 +84,9 @@ fn handle_clock_rollback() {
 
     for rollback_allowance in [DEFAULT_ROLLBACK_ALLOWANCE, 5_000, 20_000] {
         let ts = cell::Cell::new(0);
-        let [mut g0, mut g1, mut g2, mut g3] = [
+        let [mut g0, mut g1, mut g2, mut g3, mut g4, mut g5] = [
+            V7Generator::with_rand_and_time_sources(new_rand_source(), CellTimeSource(&ts)),
+            V7Generator::with_rand_and_time_sources(new_rand_source(), CellTimeSource(&ts)),
             V7Generator::with_rand_and_time_sources(new_rand_source(), CellTimeSource(&ts)),
             V7Generator::with_rand_and_time_sources(new_rand_source(), CellTimeSource(&ts)),
             V7Generator::with_rand_and_time_sources(new_rand_source(), CellTimeSource(&ts)),
@@ -94,17 +96,21 @@ fn handle_clock_rollback() {
         if rollback_allowance != DEFAULT_ROLLBACK_ALLOWANCE {
             g0.set_rollback_allowance(rollback_allowance);
             g1.set_rollback_allowance(rollback_allowance);
+            g2.set_rollback_allowance(rollback_allowance);
+            g3.set_rollback_allowance(rollback_allowance);
         }
 
-        let methods: [(&mut dyn FnMut() -> Option<Uuid>, bool); 4] = [
+        let methods: [(&mut dyn FnMut() -> Option<Uuid>, bool); 6] = [
             (&mut || Some(g0.generate()), true),
             (&mut || g1.generate_or_abort(), false),
+            (&mut || Some(g2.generate_or_reset_with_ts(ts.get())), true),
+            (&mut || g3.generate_or_abort_with_ts(ts.get()), false),
             (
-                &mut || Some(g2.generate_or_reset_core(ts.get(), rollback_allowance)),
+                &mut || Some(g4.generate_or_reset_core(ts.get(), rollback_allowance)),
                 true,
             ),
             (
-                &mut || g3.generate_or_abort_core(ts.get(), rollback_allowance),
+                &mut || g5.generate_or_abort_core(ts.get(), rollback_allowance),
                 false,
             ),
         ];
@@ -169,6 +175,22 @@ fn handle_clock_rollback() {
             }
         }
     }
+}
+
+/// _core methods do not change generator-level rollback allowance
+#[test]
+fn core_fns_do_not_change_rollback_allowance() {
+    let ts = new_time_source().unix_ts_ms();
+
+    let mut g = V7Generator::for_testing();
+    g.set_rollback_allowance(100);
+    assert_eq!(g.rollback_allowance, 100);
+
+    g.generate_or_reset_core(ts, 1_000);
+    assert_eq!(g.rollback_allowance, 100);
+
+    g.generate_or_abort_core(ts, 1_000);
+    assert_eq!(g.rollback_allowance, 100);
 }
 
 /// Is iterable with for-in loop
