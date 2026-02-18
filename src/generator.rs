@@ -180,28 +180,6 @@ impl<R: RandSource, T> V7Generator<R, T> {
         }
     }
 
-    /// Generates a new UUIDv7 object from the `unix_ts_ms` passed, or resets the generator upon
-    /// significant timestamp rollback.
-    ///
-    /// See the [`V7Generator`] type documentation for the description.
-    ///
-    /// The `rollback_allowance` parameter specifies the amount of `unix_ts_ms` rollback that is
-    /// considered significant. A suggested value is `10_000` (milliseconds).
-    ///
-    /// # Panics
-    ///
-    /// Panics if `unix_ts_ms` is not a 48-bit unsigned integer.
-    pub fn generate_or_reset_core(&mut self, unix_ts_ms: u64, rollback_allowance: u64) -> Uuid {
-        if let Some(value) = self.generate_or_abort_core(unix_ts_ms, rollback_allowance) {
-            value
-        } else {
-            // reset state and resume
-            self.timestamp_biased = 0;
-            self.generate_or_abort_core(unix_ts_ms, rollback_allowance)
-                .unwrap()
-        }
-    }
-
     /// Generates a new UUIDv7 object from the `unix_ts_ms` passed, or returns `None` upon
     /// significant timestamp rollback.
     ///
@@ -211,41 +189,18 @@ impl<R: RandSource, T> V7Generator<R, T> {
     ///
     /// Panics if `unix_ts_ms` is not a 48-bit unsigned integer.
     pub fn generate_or_abort_with_ts(&mut self, unix_ts_ms: u64) -> Option<Uuid> {
-        self.generate_or_abort_core(unix_ts_ms, self.rollback_allowance)
-    }
-
-    /// Generates a new UUIDv7 object from the `unix_ts_ms` passed, or returns `None` upon
-    /// significant timestamp rollback.
-    ///
-    /// See the [`V7Generator`] type documentation for the description.
-    ///
-    /// The `rollback_allowance` parameter specifies the amount of `unix_ts_ms` rollback that is
-    /// considered significant. A suggested value is `10_000` (milliseconds).
-    ///
-    /// # Panics
-    ///
-    /// Panics if `unix_ts_ms` is not a 48-bit unsigned integer.
-    pub fn generate_or_abort_core(
-        &mut self,
-        unix_ts_ms: u64,
-        rollback_allowance: u64,
-    ) -> Option<Uuid> {
         const MAX_COUNTER: u64 = (1 << 42) - 1;
 
         assert!(
             unix_ts_ms < 1 << 48,
             "`unix_ts_ms` must be a 48-bit unsigned integer"
         );
-        assert!(
-            rollback_allowance < 1 << 48,
-            "`rollback_allowance` out of reasonable range"
-        );
 
         let unix_ts_ms = unix_ts_ms + 1;
         if unix_ts_ms > self.timestamp_biased {
             self.timestamp_biased = unix_ts_ms;
             self.counter = self.rand_source.next_u64() & MAX_COUNTER;
-        } else if unix_ts_ms + rollback_allowance >= self.timestamp_biased {
+        } else if unix_ts_ms + self.rollback_allowance >= self.timestamp_biased {
             // go on with previous timestamp if new one is not much smaller
             self.counter += 1;
             if self.counter > MAX_COUNTER {
@@ -274,6 +229,63 @@ impl<R: RandSource, T> V7Generator<R, T> {
         bytes[6] = 0x40 | (bytes[6] >> 4);
         bytes[8] = 0x80 | (bytes[8] >> 2);
         Uuid::from(bytes)
+    }
+
+    /// Generates a new UUIDv7 object from the `unix_ts_ms` passed, or resets the generator upon
+    /// significant timestamp rollback.
+    ///
+    /// This method is a deprecated version of `generate_or_reset_with_ts()` that accepts the
+    /// `rollback_allowance` parameter as an argument, rather than using [the generator-level
+    /// parameter](Self::set_rollback_allowance).
+    ///
+    /// # Panics
+    ///
+    /// Panics if `unix_ts_ms` is not a 48-bit unsigned integer.
+    #[deprecated(since = "1.5.0", note = "use `generate_or_reset_with_ts()` instead")]
+    pub fn generate_or_reset_core(&mut self, unix_ts_ms: u64, rollback_allowance: u64) -> Uuid {
+        #[allow(deprecated)]
+        if let Some(value) = self.generate_or_abort_core(unix_ts_ms, rollback_allowance) {
+            value
+        } else {
+            // reset state and resume
+            self.timestamp_biased = 0;
+            self.generate_or_abort_core(unix_ts_ms, rollback_allowance)
+                .unwrap()
+        }
+    }
+
+    /// Generates a new UUIDv7 object from the `unix_ts_ms` passed, or returns `None` upon
+    /// significant timestamp rollback.
+    ///
+    /// This method is a deprecated version of `generate_or_abort_with_ts()` that accepts the
+    /// `rollback_allowance` parameter as an argument, rather than using [the generator-level
+    /// parameter](Self::set_rollback_allowance).
+    ///
+    /// # Panics
+    ///
+    /// Panics if `unix_ts_ms` is not a 48-bit unsigned integer.
+    #[deprecated(since = "1.5.0", note = "use `generate_or_abort_with_ts()` instead")]
+    pub fn generate_or_abort_core(
+        &mut self,
+        unix_ts_ms: u64,
+        rollback_allowance: u64,
+    ) -> Option<Uuid> {
+        struct PanicGuard<'a, R, T> {
+            orig_rollback_allowance: u64,
+            inner: &'a mut V7Generator<R, T>,
+        }
+        impl<R, T> Drop for PanicGuard<'_, R, T> {
+            fn drop(&mut self) {
+                self.inner.rollback_allowance = self.orig_rollback_allowance;
+            }
+        }
+
+        let guard = PanicGuard {
+            orig_rollback_allowance: self.rollback_allowance,
+            inner: self,
+        };
+        guard.inner.set_rollback_allowance(rollback_allowance);
+        guard.inner.generate_or_abort_with_ts(unix_ts_ms)
     }
 }
 
@@ -338,7 +350,9 @@ impl TimeSource for StdSystemTime {
     }
 }
 
+/// Obsolete test cases
 #[cfg(test)]
+#[allow(deprecated)]
 mod tests_generate_or_reset {
     use super::V7Generator;
 
@@ -379,7 +393,9 @@ mod tests_generate_or_reset {
     }
 }
 
+/// Obsolete test cases
 #[cfg(test)]
+#[allow(deprecated)]
 mod tests_generate_or_abort {
     use super::V7Generator;
 

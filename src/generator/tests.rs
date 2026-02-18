@@ -100,6 +100,7 @@ fn handle_clock_rollback() {
             g3.set_rollback_allowance(rollback_allowance);
         }
 
+        #[allow(deprecated)]
         let methods: [(&mut dyn FnMut() -> Option<Uuid>, bool); 6] = [
             (&mut || Some(g0.generate()), true),
             (&mut || g1.generate_or_abort(), false),
@@ -179,6 +180,7 @@ fn handle_clock_rollback() {
 
 /// _core methods do not change generator-level rollback allowance
 #[test]
+#[allow(deprecated)]
 fn core_fns_do_not_change_rollback_allowance() {
     let ts = new_time_source().unix_ts_ms();
 

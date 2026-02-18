@@ -11,6 +11,7 @@
   maximum allowed timestamp rollback for each generator
 - Added `generate_or_reset_with_ts()` and `generate_or_abort_with_ts()` to
   `V7Generator`
+- Deprecated `generate_or_reset_core()` and `generate_or_abort_core()`
 - Added and refactored test cases to cover new features.
 - Minor documentation updates.
 
