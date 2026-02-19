@@ -7,9 +7,11 @@
 - Customizable time sources: Introduced a generic `TimeSource` trait for
   `V7Generator`, allowing users to provide custom timestamp sources. This
   enhances flexibility, especially for testing or specific environments. The
-  default implementation `StdSystemTime` uses `std::time::SystemTime`. A new
-  constructor, `with_rand_and_time_sources()`, that allows specifying both
-  random number and timestamp sources is added.
+  default implementation `StdSystemTime` uses `std::time::SystemTime`.
+  - A new constructor, `with_rand_and_time_sources()`, is added to specify both
+    random number and timestamp sources.
+  - The `generate()` and `generate_or_abort()` methods that were gated behind
+    `std` are now available in `no_std` where a custom `TimeSource` is provided.
 - Generator-level rollback allowance: Added `set_rollback_allowance()` to
   `V7Generator` to configure the maximum allowed timestamp rollback for each
   generator instance. This dictates `generate()` and `generate_or_abort()` as
