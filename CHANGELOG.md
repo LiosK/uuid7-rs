@@ -2,17 +2,33 @@
 
 ## v1.5.0 - unreleased
 
-- Added `TimeSource` trait to allow custom timestamp sources for `V7Generator`
-- Added `with_rand_and_time_sources()` constructor to `V7Generator` to accept
-  both custom random number generators and time sources
-- Renamed `Rng` trait to `RandSource` for clarity and consistency, re-exporting
-  the old name as a deprecated alias to maintain backward compatibility
-- Added `set_rollback_allowance()` method to `V7Generator` to configure the
-  maximum allowed timestamp rollback for each generator
-- Added `generate_or_reset_with_ts()` and `generate_or_abort_with_ts()` to
-  `V7Generator`
-- Deprecated `generate_or_reset_core()` and `generate_or_abort_core()`
-- Added and refactored test cases to cover new features.
+### New features and improvements
+
+- Customizable time sources: Introduced a generic `TimeSource` trait for
+  `V7Generator`, allowing users to provide custom timestamp sources. This
+  enhances flexibility, especially for testing or specific environments. The
+  default implementation `StdSystemTime` uses `std::time::SystemTime`. A new
+  constructor, `with_rand_and_time_sources()`, that allows specifying both
+  random number and timestamp sources is added.
+- Generator-level rollback allowance: Added `set_rollback_allowance()` to
+  `V7Generator` to configure the maximum allowed timestamp rollback for each
+  generator instance. This dictates `generate()` and `generate_or_abort()` as
+  well as eliminates the need for the `rollback_allowance` argument of the
+  `*_core` variants, which are now superseded by the newly added `*_with_ts`
+  variants that leverage the generator-level setting.
+
+### API changes and deprecations
+
+- `RandSource` trait: Renamed `Rng` trait to `RandSource` for improved clarity
+  and consistency. A deprecated type alias `Rng` is provided for backward
+  compatibility.
+- Deprecated core generator methods: Deprecated `generate_or_reset_core()` and
+  `generate_or_abort_core()` of `V7Generator`. Users should migrate to the new
+  `generate_or_reset_with_ts()` and `generate_or_abort_with_ts()` methods.
+
+### Maintenance and other changes
+
+- Test code refactoring.
 - Minor documentation updates.
 
 ## v1.4.0 - 2025-11-30

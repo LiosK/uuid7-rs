@@ -189,13 +189,11 @@ impl<R: RandSource, T> V7Generator<R, T> {
     ///
     /// Panics if `unix_ts_ms` is not a 48-bit unsigned integer.
     pub fn generate_or_abort_with_ts(&mut self, unix_ts_ms: u64) -> Option<Uuid> {
+        if unix_ts_ms >= 1 << 48 {
+            panic!("`unix_ts_ms` must be a 48-bit unsigned integer");
+        }
+
         const MAX_COUNTER: u64 = (1 << 42) - 1;
-
-        assert!(
-            unix_ts_ms < 1 << 48,
-            "`unix_ts_ms` must be a 48-bit unsigned integer"
-        );
-
         let unix_ts_ms = unix_ts_ms + 1;
         if unix_ts_ms > self.timestamp_biased {
             self.timestamp_biased = unix_ts_ms;
@@ -350,6 +348,9 @@ impl TimeSource for StdSystemTime {
     }
 }
 
+#[cfg(test)]
+mod tests;
+
 /// Obsolete test cases
 #[cfg(test)]
 #[allow(deprecated)]
@@ -432,6 +433,3 @@ mod tests_generate_or_abort {
         assert!(curr.is_none());
     }
 }
-
-#[cfg(test)]
-mod tests;
