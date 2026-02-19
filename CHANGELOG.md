@@ -30,6 +30,8 @@
 
 ### Maintenance and other changes
 
+- Added `is_nil()` and `is_max()` methods to `Uuid` for convenience in checking
+  for the Nil and Max UUIDs.
 - Test code refactoring.
 - Minor documentation updates.
 

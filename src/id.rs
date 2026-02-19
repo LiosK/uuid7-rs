@@ -130,7 +130,7 @@ impl Uuid {
     pub const fn variant(&self) -> Variant {
         match self.0[8] >> 4 {
             0b0000..=0b0111 => {
-                if self.to_u128() == Self::NIL.to_u128() {
+                if self.is_nil() {
                     Variant::Nil
                 } else {
                     Variant::Var0
@@ -139,7 +139,7 @@ impl Uuid {
             0b1000..=0b1011 => Variant::Var10,
             0b1100..=0b1101 => Variant::Var110,
             0b1110..=0b1111 => {
-                if self.to_u128() == Self::MAX.to_u128() {
+                if self.is_max() {
                     Variant::Max
                 } else {
                     Variant::VarReserved
@@ -156,6 +156,16 @@ impl Uuid {
             Variant::Var10 => Some(self.0[6] >> 4),
             _ => None,
         }
+    }
+
+    /// Returns `true` if `self` is the Nil UUID.
+    pub const fn is_nil(&self) -> bool {
+        self.to_u128() == Self::NIL.to_u128()
+    }
+
+    /// Returns `true` if `self` is the Max UUID.
+    pub const fn is_max(&self) -> bool {
+        self.to_u128() == Self::MAX.to_u128()
     }
 }
 
@@ -498,11 +508,13 @@ mod tests {
     /// Returns Nil and Max UUIDs
     #[test]
     fn returns_nil_and_max_uuids() {
+        assert!(Uuid::NIL.is_nil());
         assert_eq!(
             &Uuid::NIL.encode() as &str,
             "00000000-0000-0000-0000-000000000000"
         );
 
+        assert!(Uuid::MAX.is_max());
         assert_eq!(
             &Uuid::MAX.encode() as &str,
             "ffffffff-ffff-ffff-ffff-ffffffffffff"
