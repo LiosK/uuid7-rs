@@ -80,10 +80,9 @@ Optional features:
 - `rand09` enables an adapter for `rand::RngCore` to use `rand` (v0.9) and any
   other conforming random number generators with `V7Generator`.
 - `rand08` enables an adapter for `rand::RngCore` to use `rand` (v0.8) and any
-  other conforming random number generators with `V7Generator`. Currently, this
-  feature is always enabled and cannot be turned off. This behavior is
-  deprecated and for backward compatibility only. Enable `rand08` explicitly
-  when needed.
+  other conforming random number generators with `V7Generator`. This feature is
+  deprecated and for backward compatibility only, but it is always enabled and
+  cannot be turned off for historical reasons.
 - `uuid` (together with `global_gen`) enables the `new_v7()` function that
   returns the popular [uuid](https://crates.io/crates/uuid) crate's `Uuid`
   objects.

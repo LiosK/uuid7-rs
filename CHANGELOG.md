@@ -29,6 +29,8 @@
 - Deprecated core generator methods: Deprecated `generate_or_reset_core()` and
   `generate_or_abort_core()` of `V7Generator`. Users should migrate to the new
   `generate_or_reset_with_ts()` and `generate_or_abort_with_ts()` methods.
+- Deprecated `rand` v0.8 support: Deprecated `rand08` cargo feature and related
+  APIs to encourage migration to newer `rand` versions.
 
 ### Maintenance and other changes
 

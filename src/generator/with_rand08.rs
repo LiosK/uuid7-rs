@@ -4,6 +4,7 @@
 //!  and for backward compatibility only. Enable `rand08` crate feature explicitly when needed.
 
 #![cfg_attr(docsrs, doc(cfg(feature = "rand08")))]
+#![deprecated(since = "1.5.0", note = "use a newer version of `rand` crate")]
 
 use super::{RandSource, V7Generator};
 use rand_core06::RngCore;
