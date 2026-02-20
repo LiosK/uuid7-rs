@@ -15,6 +15,7 @@ default = ["global_gen"]
 std = ["fstr/std"]
 global_gen = ["std", "dep:rand", "dep:rand_chacha"]
 rand09 = ["dep:rand_core09"]
+rand010 = ["dep:rand_core010"]
 serde = ["dep:serde"]
 uuid = ["dep:uuid"]
 
@@ -26,6 +27,7 @@ rand_core06 = { package = "rand_core", version = "0.6", default-features = false
 rand = { version = "0.9", optional = true }
 rand_chacha = { version = "0.9", optional = true }
 rand_core09 = { package = "rand_core", version = "0.9", default-features = false, optional = true }
+rand_core010 = { package = "rand_core", version = "0.10", default-features = false, optional = true }
 serde = { version = "1.0", default-features = false, optional = true }
 uuid = { version = "1", optional = true }
 

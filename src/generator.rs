@@ -18,6 +18,7 @@ pub trait RandSource {
 #[deprecated(since = "1.5.0", note = "use `RandSource` instead")]
 pub use RandSource as Rng;
 
+pub mod with_rand010;
 pub mod with_rand08;
 pub mod with_rand09;
 

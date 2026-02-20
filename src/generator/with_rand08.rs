@@ -1,4 +1,4 @@
-//!  Integration with `rand` (v0.8) crate.
+//! Integration with `rand` (v0.8) crate.
 //!
 //!  Currently, this module is always enabled and cannot be turned off. This behavior is deprecated
 //!  and for backward compatibility only. Enable `rand08` crate feature explicitly when needed.
@@ -8,7 +8,7 @@
 use super::{RandSource, V7Generator};
 use rand_core06::RngCore;
 
-/// An adapter that implements this crate's [`RandSource`] for [`RngCore`] types.
+/// An adapter that implements [`RandSource`] for [`RngCore`] types.
 #[derive(Clone, Eq, PartialEq, Debug, Default)]
 pub struct Adapter<T>(/** The wrapped [`RngCore`] type. */ pub T);
 
@@ -23,7 +23,7 @@ impl<T: RngCore> RandSource for Adapter<T> {
 }
 
 impl<T: RngCore> V7Generator<Adapter<T>> {
-    /// Creates a generator instance with a specified random number generator that implements
+    /// Creates a generator object with a specified random number generator that implements
     /// [`RngCore`] from `rand` (v0.8) crate.
     pub const fn with_rand08(rng: T) -> Self {
         Self::new(Adapter(rng))

@@ -18,6 +18,8 @@
   well as eliminates the need for the `rollback_allowance` argument of the
   `*_core` variants, which are now superseded by the newly added `*_with_ts`
   variants that leverage the generator-level setting.
+- `rand` v0.10 support: Added a new `rand010` feature to support the `rand`
+  crate (v0.10).
 
 ### API changes and deprecations
 
