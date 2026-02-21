@@ -142,9 +142,15 @@ impl<R, T> V7Generator<R, T> {
     }
 
     /// Resets the internal state of the generator.
-    fn reset_state(&mut self) {
+    pub(crate) fn reset_state(&mut self) {
         self.timestamp_biased = 0;
         self.counter = 0;
+    }
+
+    /// Replaces the random number generator with the argument, returning the old one.
+    #[cfg(feature = "global_gen")]
+    pub(crate) fn replace_rand_source(&mut self, rand_source: R) -> R {
+        std::mem::replace(&mut self.rand_source, rand_source)
     }
 }
 

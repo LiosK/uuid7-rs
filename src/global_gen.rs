@@ -69,6 +69,12 @@ mod inner {
         }
     }
 
+    impl GlobalGenRng {
+        fn try_new() -> Result<Self, impl std::error::Error> {
+            ReseedingRng::new(1024 * 64, OsRng).map(|inner| Self(inner))
+        }
+    }
+
     /// A thin wrapper to reset the state when the process ID changes (i.e., upon Unix forks).
     #[derive(Debug)]
     pub struct GlobalGenInner {
@@ -82,10 +88,9 @@ mod inner {
             Self {
                 #[cfg(unix)]
                 pid: std::process::id(),
-                generator: V7Generator::new(GlobalGenRng(
-                    ReseedingRng::new(1024 * 64, OsRng)
-                        .expect("uuid7: could not initialize global generator"),
-                )),
+                generator: V7Generator::new(
+                    GlobalGenRng::try_new().expect("uuid7: could not initialize global generator"),
+                ),
             }
         }
     }
@@ -96,7 +101,11 @@ mod inner {
         pub fn get_mut(&mut self) -> &mut V7Generator<GlobalGenRng> {
             #[cfg(unix)]
             if self.pid != std::process::id() {
-                *self = Default::default();
+                self.pid = std::process::id();
+                self.generator.reset_state();
+                if let Ok(rng) = GlobalGenRng::try_new() {
+                    self.generator.replace_rand_source(rng);
+                }
             }
             &mut self.generator
         }
