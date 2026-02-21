@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Updated documentation and examples to reflect API changes in v1.5.0.
+
 ## v1.5.0 - 2026-02-21
 
 ### New features and improvements
