@@ -140,6 +140,12 @@ impl<R, T> V7Generator<R, T> {
         }
         self.rollback_allowance = rollback_allowance;
     }
+
+    /// Resets the internal state of the generator.
+    fn reset_state(&mut self) {
+        self.timestamp_biased = 0;
+        self.counter = 0;
+    }
 }
 
 impl<R: RandSource, T: TimeSource> V7Generator<R, T> {
@@ -176,7 +182,7 @@ impl<R: RandSource, T> V7Generator<R, T> {
             value
         } else {
             // reset state and resume
-            self.timestamp_biased = 0;
+            self.reset_state();
             self.generate_or_abort_with_ts(unix_ts_ms).unwrap()
         }
     }
@@ -247,7 +253,7 @@ impl<R: RandSource, T> V7Generator<R, T> {
             value
         } else {
             // reset state and resume
-            self.timestamp_biased = 0;
+            self.reset_state();
             self.generate_or_abort_core(unix_ts_ms, rollback_allowance)
                 .unwrap()
         }
