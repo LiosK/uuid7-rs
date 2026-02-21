@@ -107,9 +107,10 @@ let custom_unix_ts_ms = 0x0123_4567_8901u64;
 let x = g.generate_or_reset_with_ts(custom_unix_ts_ms);
 println!("{}", x);
 
+g.set_rollback_allowance(5_000);
 let y = g
     .generate_or_abort_with_ts(custom_unix_ts_ms)
-    .expect("clock went backwards by more than 10_000 milliseconds");
+    .expect("clock went backwards by more than 5_000 milliseconds");
 println!("{}", y);
 ```
 
