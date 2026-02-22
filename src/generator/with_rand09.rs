@@ -26,7 +26,7 @@ impl<T: RngCore> V7Generator<Adapter<T>> {
     /// # Examples
     ///
     /// ```rust
-    /// # #[cfg(feature = "global_gen")]
+    /// # #[cfg(all(feature = "std", feature = "rand09"))]
     /// # {
     /// use uuid7::V7Generator;
     ///

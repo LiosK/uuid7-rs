@@ -40,7 +40,7 @@ pub trait TimeSource {
 /// the adapters enabled by the corresponding cargo features.
 ///
 /// ```rust
-/// # #[cfg(feature = "rand09")]
+/// # #[cfg(all(feature = "std", feature = "rand09"))]
 /// # {
 /// use uuid7::V7Generator;
 ///
@@ -312,7 +312,7 @@ impl<R, T: fmt::Debug> fmt::Debug for V7Generator<R, T> {
 /// # Examples
 ///
 /// ```rust
-/// # #[cfg(feature = "rand09")]
+/// # #[cfg(all(feature = "std", feature = "rand09"))]
 /// # {
 /// use uuid7::V7Generator;
 ///
