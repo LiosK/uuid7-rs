@@ -3,6 +3,7 @@
 ## v1.6.0 - unreleased
 
 - Migrated to Edition 2024 and upgraded MSRV from 1.70 to 1.85.
+- Implemented `core::error::Error` for `ParseError` in `no_std` environments.
 - Updated documentation and examples to reflect API changes in v1.5.0.
 
 ## v1.5.0 - 2026-02-21

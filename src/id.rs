@@ -2,7 +2,7 @@
 use core as std;
 
 use fstr::FStr;
-use std::{fmt, str};
+use std::{error, fmt, str};
 
 /// Represents a Universally Unique IDentifier.
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default)]
@@ -276,6 +276,8 @@ impl fmt::Display for ParseError {
     }
 }
 
+impl error::Error for ParseError {}
+
 /// The reserved UUID variants and the Nil and Max markers.
 ///
 /// For convenience, this enum defines the independent Nil and Max variants, although they are
@@ -319,8 +321,6 @@ mod with_std {
             src.parse()
         }
     }
-
-    impl std::error::Error for ParseError {}
 }
 
 #[cfg(feature = "uuid")]
