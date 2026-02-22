@@ -8,10 +8,8 @@ use crate::{Uuid, V7Generator};
 
 /// Returns the lock handle of process-wide global generator, creating one if none exists.
 fn lock_global_gen() -> sync::MutexGuard<'static, GlobalGenInner> {
-    static G: sync::OnceLock<sync::Mutex<GlobalGenInner>> = sync::OnceLock::new();
-    G.get_or_init(Default::default)
-        .lock()
-        .expect("uuid7: could not lock global generator")
+    static G: sync::LazyLock<sync::Mutex<GlobalGenInner>> = sync::LazyLock::new(Default::default);
+    G.lock().expect("uuid7: could not lock global generator")
 }
 
 /// Generates a UUIDv7 object.
