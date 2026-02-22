@@ -41,7 +41,7 @@ pub trait TimeSource {
 /// ```rust
 /// # #[cfg(feature = "rand09")]
 /// # {
-/// use rand::{rngs::StdRng, SeedableRng as _};
+/// use rand::{SeedableRng as _, rngs::StdRng};
 /// use std::{sync, thread};
 /// use uuid7::V7Generator;
 ///

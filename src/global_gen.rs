@@ -240,8 +240,8 @@ mod tests_v7 {
 
     /// Generates no IDs sharing same timestamp and counters under multithreading
     #[test]
-    fn generates_no_ids_sharing_same_timestamp_and_counters_under_multithreading(
-    ) -> Result<(), Box<dyn std::error::Error>> {
+    fn generates_no_ids_sharing_same_timestamp_and_counters_under_multithreading()
+    -> Result<(), Box<dyn std::error::Error>> {
         use std::{collections::HashSet, sync::mpsc, thread};
 
         let (tx, rx) = mpsc::channel();
