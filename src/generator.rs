@@ -32,32 +32,23 @@ pub trait TimeSource {
 /// UUIDs generated within the same millisecond.
 ///
 /// This type provides the interface to customize the random number generator, system clock, and
-/// clock rollback handling of a UUIDv7 generator. It also helps control the scope of guaranteed
-/// order of the generated UUIDs. The following example guarantees the process-wide (cross-thread)
-/// monotonicity using Rust's standard synchronization mechanism.
+/// clock rollback handling of a UUIDv7 generator.
 ///
 /// # Examples
+///
+/// This structure is typically instantiated with a random number generator from `rand` crate via
+/// the adapters enabled by the corresponding cargo features.
 ///
 /// ```rust
 /// # #[cfg(feature = "rand09")]
 /// # {
-/// use rand::{SeedableRng as _, rngs::StdRng};
-/// use std::{sync, thread};
 /// use uuid7::V7Generator;
 ///
-/// let rng = StdRng::from_os_rng();
-/// let g = sync::Arc::new(sync::Mutex::new(V7Generator::with_rand09(rng)));
-/// thread::scope(|s| {
-///     for i in 0..4 {
-///         let g = sync::Arc::clone(&g);
-///         s.spawn(move || {
-///             for _ in 0..8 {
-///                 println!("{} by thread {}", g.lock().unwrap().generate(), i);
-///                 thread::yield_now();
-///             }
-///         });
-///     }
-/// });
+/// let mut g = V7Generator::with_rand09(rand::rng());
+/// println!("{}", g.generate());
+/// if let Some(value) = g.generate_or_abort() {
+///     println!("{}", value);
+/// }
 /// # }
 /// ```
 ///

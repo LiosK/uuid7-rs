@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Minor documentation updates.
+
 ## v1.6.0 - 2026-02-22
 
 - Migrated to Edition 2024 and upgraded MSRV from 1.70 to 1.85.
