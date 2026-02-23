@@ -3,6 +3,7 @@
 ## v1.7.0 - unreleased
 
 - Added `try_from_fields_v7()` constructor to `Uuid`.
+- Upgraded `rand` crate used internally by `global_gen` from v0.9 to v0.10.
 - Minor documentation updates.
 
 ## v1.6.0 - 2026-02-22

@@ -40,11 +40,11 @@ pub trait TimeSource {
 /// the adapters enabled by the corresponding cargo features.
 ///
 /// ```rust
-/// # #[cfg(all(feature = "std", feature = "rand09"))]
+/// # #[cfg(all(feature = "std", feature = "rand010"))]
 /// # {
 /// use uuid7::V7Generator;
 ///
-/// let mut g = V7Generator::with_rand09(rand::rng());
+/// let mut g = V7Generator::with_rand010(rand::rng());
 /// println!("{}", g.generate());
 /// if let Some(value) = g.generate_or_abort() {
 ///     println!("{}", value);
@@ -96,7 +96,7 @@ pub struct V7Generator<R, T = StdSystemTime> {
 impl<R> V7Generator<R> {
     /// Creates a generator object.
     ///
-    /// Use [`V7Generator::with_rand09()`] to create a generator with the random number generators
+    /// Use [`V7Generator::with_rand010()`] to create a generator with the random number generators
     /// from `rand` crate. Although this constructor accepts `rand::RngCore` (v0.8) types for
     /// historical reasons, such behavior is deprecated and will be removed in the future.
     pub const fn new(rand_source: R) -> Self {
@@ -107,7 +107,7 @@ impl<R> V7Generator<R> {
 impl<R, T> V7Generator<R, T> {
     /// Creates a generator object with specified random number generator and system clock.
     ///
-    /// Use [`with_rand09::Adapter`] to pass a random number generator from `rand` crate. Although
+    /// Use [`with_rand010::Adapter`] to pass a random number generator from `rand` crate. Although
     /// this constructor accepts `rand::RngCore` (v0.8) types for historical reasons, such behavior
     /// is deprecated and will be removed in the future.
     pub const fn with_rand_and_time_sources(rand_source: R, time_source: T) -> Self {
@@ -312,11 +312,11 @@ impl<R, T: fmt::Debug> fmt::Debug for V7Generator<R, T> {
 /// # Examples
 ///
 /// ```rust
-/// # #[cfg(all(feature = "std", feature = "rand09"))]
+/// # #[cfg(all(feature = "std", feature = "rand010"))]
 /// # {
 /// use uuid7::V7Generator;
 ///
-/// V7Generator::with_rand09(rand::rng())
+/// V7Generator::with_rand010(rand::rng())
 ///     .enumerate()
 ///     .skip(4)
 ///     .take(4)

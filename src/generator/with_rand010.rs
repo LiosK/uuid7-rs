@@ -25,12 +25,14 @@ impl<T: Rng> V7Generator<Adapter<T>> {
     ///
     /// # Examples
     ///
-    /// ```ignore
-    /// # use rand010 as rand;
+    /// ```rust
+    /// # #[cfg(all(feature = "std", feature = "rand010"))]
+    /// # {
     /// use uuid7::V7Generator;
     ///
     /// let mut g = V7Generator::with_rand010(rand::rng());
     /// println!("{}", g.generate());
+    /// # }
     /// ```
     pub const fn with_rand010(rng: T) -> Self {
         Self::new(Adapter(rng))

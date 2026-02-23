@@ -102,11 +102,11 @@
 //! aspects of the UUIDv7 generation:
 //!
 //! ```rust
-//! # #[cfg(feature = "rand09")]
+//! # #[cfg(feature = "rand010")]
 //! # {
 //! use uuid7::V7Generator;
 //!
-//! let mut g = V7Generator::with_rand09(rand::rng());
+//! let mut g = V7Generator::with_rand010(rand::rng());
 //! let custom_unix_ts_ms = 0x0123_4567_8901u64;
 //! let x = g.generate_or_reset_with_ts(custom_unix_ts_ms);
 //! println!("{}", x);

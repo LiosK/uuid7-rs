@@ -25,14 +25,11 @@ impl<T: RngCore> V7Generator<Adapter<T>> {
     ///
     /// # Examples
     ///
-    /// ```rust
-    /// # #[cfg(all(feature = "std", feature = "rand09"))]
-    /// # {
+    /// ```ignore
     /// use uuid7::V7Generator;
     ///
     /// let mut g = V7Generator::with_rand09(rand::rng());
     /// println!("{}", g.generate());
-    /// # }
     /// ```
     pub const fn with_rand09(rng: T) -> Self {
         Self::new(Adapter(rng))
