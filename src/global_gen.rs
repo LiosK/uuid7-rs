@@ -116,39 +116,35 @@ mod tests_v7 {
     use super::uuid7;
     use crate::Variant;
 
+    use std::{collections, sync};
+
     const N_SAMPLES: usize = 100_000;
-    thread_local!(static SAMPLES: Vec<String> = (0..N_SAMPLES).map(|_| uuid7().into()).collect());
+    static SAMPLES: sync::LazyLock<Vec<String>> =
+        sync::LazyLock::new(|| (0..N_SAMPLES).map(|_| uuid7().into()).collect());
 
     /// Generates canonical string
     #[test]
     fn generates_canonical_string() {
         let pattern = r"^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$";
         let re = regex::Regex::new(pattern).unwrap();
-        SAMPLES.with(|samples| {
-            for e in samples {
-                assert!(re.is_match(e));
-            }
-        });
+        for e in &SAMPLES[..] {
+            assert!(re.is_match(e));
+        }
     }
 
     /// Generates 100k identifiers without collision
     #[test]
     fn generates_100k_identifiers_without_collision() {
-        use std::collections::HashSet;
-        SAMPLES.with(|samples| {
-            let s: HashSet<&String> = samples.iter().collect();
-            assert_eq!(s.len(), N_SAMPLES);
-        });
+        let s: collections::HashSet<&String> = SAMPLES.iter().collect();
+        assert_eq!(s.len(), N_SAMPLES);
     }
 
     /// Generates sortable string representation by creation time
     #[test]
     fn generates_sortable_string_representation_by_creation_time() {
-        SAMPLES.with(|samples| {
-            for i in 1..N_SAMPLES {
-                assert!(samples[i - 1] < samples[i]);
-            }
-        });
+        for i in 1..N_SAMPLES {
+            assert!(SAMPLES[i - 1] < SAMPLES[i]);
+        }
     }
 
     /// Encodes up-to-date timestamp
@@ -171,41 +167,36 @@ mod tests_v7 {
     /// Encodes unique sortable pair of timestamp and counter
     #[test]
     fn encodes_unique_sortable_pair_of_timestamp_and_counter() {
-        SAMPLES.with(|samples| {
-            let mut prev_timestamp = &samples[0][0..13];
-            let mut prev_counter = &samples[0][15..28];
-            for e in &samples[1..] {
-                let curr_timestamp = &e[0..13];
-                let curr_counter = &e[15..28];
-                assert!(
-                    prev_timestamp < curr_timestamp
-                        || (prev_timestamp == curr_timestamp && prev_counter < curr_counter)
-                );
-                prev_timestamp = curr_timestamp;
-                prev_counter = curr_counter;
-            }
-        });
+        let mut prev_timestamp = &SAMPLES[0][0..13];
+        let mut prev_counter = &SAMPLES[0][15..28];
+        for e in &SAMPLES[1..] {
+            let curr_timestamp = &e[0..13];
+            let curr_counter = &e[15..28];
+            assert!(
+                prev_timestamp < curr_timestamp
+                    || (prev_timestamp == curr_timestamp && prev_counter < curr_counter)
+            );
+            prev_timestamp = curr_timestamp;
+            prev_counter = curr_counter;
+        }
     }
 
     /// Sets constant bits and random bits properly
     #[test]
     fn sets_constant_bits_and_random_bits_properly() {
         // count '1' of each bit
-        let bins = SAMPLES.with(|samples| {
-            let mut bins = [0u32; 128];
-            for e in samples {
-                let mut it = bins.iter_mut().rev();
-                for c in e.chars().rev() {
-                    if let Some(mut num) = c.to_digit(16) {
-                        for _ in 0..4 {
-                            *it.next().unwrap() += num & 1;
-                            num >>= 1;
-                        }
+        let mut bins = [0u32; 128];
+        for e in &SAMPLES[..] {
+            let mut it = bins.iter_mut().rev();
+            for c in e.chars().rev() {
+                if let Some(mut num) = c.to_digit(16) {
+                    for _ in 0..4 {
+                        *it.next().unwrap() += num & 1;
+                        num >>= 1;
                     }
                 }
             }
-            bins
-        });
+        }
 
         // test if constant bits are all set to 1 or 0
         let n = N_SAMPLES as u32;
@@ -270,50 +261,45 @@ mod tests_v4 {
     use super::uuid4;
     use crate::Variant;
 
+    use std::{collections, sync};
+
     const N_SAMPLES: usize = 100_000;
-    thread_local!(static SAMPLES: Vec<String> = (0..N_SAMPLES).map(|_| uuid4().into()).collect());
+    static SAMPLES: sync::LazyLock<Vec<String>> =
+        sync::LazyLock::new(|| (0..N_SAMPLES).map(|_| uuid4().into()).collect());
 
     /// Generates canonical string
     #[test]
     fn generates_canonical_string() {
         let pattern = r"^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$";
         let re = regex::Regex::new(pattern).unwrap();
-        SAMPLES.with(|samples| {
-            for e in samples {
-                assert!(re.is_match(e));
-            }
-        });
+        for e in &SAMPLES[..] {
+            assert!(re.is_match(e));
+        }
     }
 
     /// Generates 100k identifiers without collision
     #[test]
     fn generates_100k_identifiers_without_collision() {
-        use std::collections::HashSet;
-        SAMPLES.with(|samples| {
-            let s: HashSet<&String> = samples.iter().collect();
-            assert_eq!(s.len(), N_SAMPLES);
-        });
+        let s: collections::HashSet<&String> = SAMPLES.iter().collect();
+        assert_eq!(s.len(), N_SAMPLES);
     }
 
     /// Sets constant bits and random bits properly
     #[test]
     fn sets_constant_bits_and_random_bits_properly() {
         // count '1' of each bit
-        let bins = SAMPLES.with(|samples| {
-            let mut bins = [0u32; 128];
-            for e in samples {
-                let mut it = bins.iter_mut().rev();
-                for c in e.chars().rev() {
-                    if let Some(mut num) = c.to_digit(16) {
-                        for _ in 0..4 {
-                            *it.next().unwrap() += num & 1;
-                            num >>= 1;
-                        }
+        let mut bins = [0u32; 128];
+        for e in &SAMPLES[..] {
+            let mut it = bins.iter_mut().rev();
+            for c in e.chars().rev() {
+                if let Some(mut num) = c.to_digit(16) {
+                    for _ in 0..4 {
+                        *it.next().unwrap() += num & 1;
+                        num >>= 1;
                     }
                 }
             }
-            bins
-        });
+        }
 
         // test if constant bits are all set to 1 or 0
         let n = N_SAMPLES as u32;
