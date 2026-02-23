@@ -43,14 +43,14 @@ pub fn uuid4() -> Uuid {
     lock_global_gen().get_mut().generate_v4()
 }
 
-use default_rng::DefaultRng;
+use global_gen_rng::GlobalGenRng;
 
 /// A thin wrapper to reset the state when the process ID changes (i.e., upon Unix forks).
 #[derive(Debug)]
 struct GlobalGenInner {
     #[cfg(unix)]
     pid: u32,
-    generator: V7Generator<DefaultRng>,
+    generator: V7Generator<GlobalGenRng>,
 }
 
 impl Default for GlobalGenInner {
@@ -59,7 +59,7 @@ impl Default for GlobalGenInner {
             #[cfg(unix)]
             pid: std::process::id(),
             generator: V7Generator::new(
-                DefaultRng::try_new().expect("uuid7: could not initialize global generator"),
+                GlobalGenRng::try_new().expect("uuid7: could not initialize global generator"),
             ),
         }
     }
@@ -68,12 +68,12 @@ impl Default for GlobalGenInner {
 impl GlobalGenInner {
     /// Returns a mutable reference to the inner [`V7Generator`] instance, reseting the
     /// generator state on Unix if the process ID has changed.
-    fn get_mut(&mut self) -> &mut V7Generator<DefaultRng> {
+    fn get_mut(&mut self) -> &mut V7Generator<GlobalGenRng> {
         #[cfg(unix)]
         if self.pid != std::process::id() {
             self.pid = std::process::id();
             self.generator.reset_state();
-            if let Ok(rng) = DefaultRng::try_new() {
+            if let Ok(rng) = GlobalGenRng::try_new() {
                 self.generator.replace_rand_source(rng);
             }
         }
@@ -81,7 +81,7 @@ impl GlobalGenInner {
     }
 }
 
-mod default_rng {
+mod global_gen_rng {
     use rand::rngs::{OsRng, ReseedingRng};
     use rand_chacha::ChaCha12Core;
 
@@ -92,9 +92,9 @@ mod default_rng {
     /// The global generator currently employs [`ChaCha12Core`] with [`ReseedingRng`] wrapper to
     /// emulate the strategy used by [`rand::rngs::ThreadRng`].
     #[derive(Debug)]
-    pub struct DefaultRng(ReseedingRng<ChaCha12Core, OsRng>);
+    pub struct GlobalGenRng(ReseedingRng<ChaCha12Core, OsRng>);
 
-    impl RandSource for DefaultRng {
+    impl RandSource for GlobalGenRng {
         fn next_u32(&mut self) -> u32 {
             rand::RngCore::next_u32(&mut self.0)
         }
@@ -104,7 +104,7 @@ mod default_rng {
         }
     }
 
-    impl DefaultRng {
+    impl GlobalGenRng {
         pub fn try_new() -> Result<Self, impl std::error::Error> {
             ReseedingRng::new(1024 * 64, OsRng).map(Self)
         }
