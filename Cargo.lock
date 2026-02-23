@@ -249,7 +249,6 @@ version = "1.6.0"
 dependencies = [
  "fstr",
  "rand",
- "rand_chacha",
  "rand_core 0.10.0",
  "rand_core 0.6.4",
  "rand_core 0.9.5",

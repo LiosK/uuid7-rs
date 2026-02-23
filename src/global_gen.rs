@@ -82,32 +82,71 @@ impl GlobalGenInner {
 }
 
 mod global_gen_rng {
-    use rand::rngs::{OsRng, ReseedingRng};
-    use rand_chacha::ChaCha12Core;
+    use rand::{RngCore as _, SeedableRng as _, rngs::OsRng as SysRng, rngs::StdRng};
 
     use crate::generator::RandSource;
 
     /// The new type for the random number generator of the global generator.
     ///
-    /// The global generator currently employs [`ChaCha12Core`] with [`ReseedingRng`] wrapper to
-    /// emulate the strategy used by [`rand::rngs::ThreadRng`].
+    /// The global generator currently employs [`StdRng`] and reseeds it after every 64KiB
+    /// consumption, emulating the strategy used by `ThreadRng`.
     #[derive(Debug)]
-    pub struct GlobalGenRng(ReseedingRng<ChaCha12Core, OsRng>);
+    pub struct GlobalGenRng {
+        counter: usize,
+        inner: StdRng,
+    }
+
+    const RESEED_THRESHOLD: usize = 64 * 1024;
 
     impl RandSource for GlobalGenRng {
         fn next_u32(&mut self) -> u32 {
-            rand::RngCore::next_u32(&mut self.0)
+            if self.counter >= RESEED_THRESHOLD {
+                self.try_to_reseed();
+            }
+            self.counter += 32;
+            self.inner.next_u32()
         }
 
         fn next_u64(&mut self) -> u64 {
-            rand::RngCore::next_u64(&mut self.0)
+            if self.counter >= RESEED_THRESHOLD {
+                self.try_to_reseed();
+            }
+            self.counter += 64;
+            self.inner.next_u64()
         }
     }
 
     impl GlobalGenRng {
         pub fn try_new() -> Result<Self, impl std::error::Error> {
-            ReseedingRng::new(1024 * 64, OsRng).map(Self)
+            StdRng::try_from_rng(&mut SysRng).map(|inner| Self { counter: 0, inner })
         }
+
+        #[cold]
+        fn try_to_reseed(&mut self) {
+            if let Ok(rng) = Self::try_new() {
+                *self = rng;
+            }
+        }
+    }
+
+    #[cfg(test)]
+    #[test]
+    fn reseeded_after_64kib() {
+        let seed = rand::TryRngCore::try_next_u64(&mut SysRng).unwrap();
+        let mut g1 = StdRng::seed_from_u64(seed);
+        let mut g2 = GlobalGenRng {
+            counter: 0,
+            inner: StdRng::seed_from_u64(seed),
+        };
+
+        for _ in 0..(64 * 1024 / (32 + 32 + 64)) {
+            assert_eq!(g1.next_u32(), g2.next_u32());
+            assert_eq!(g1.next_u32(), g2.next_u32());
+            assert_eq!(g1.next_u64(), g2.next_u64());
+        }
+
+        assert_ne!(g1.next_u32(), g2.next_u32());
+        assert_ne!(g1.next_u64(), g2.next_u64());
     }
 }
 
