@@ -27,12 +27,40 @@ impl Uuid {
     }
 
     /// Creates a UUID byte array from UUIDv7 field values.
+    ///
+    /// # Panics
+    ///
+    /// Panics if any argument is out of the value range of the field.
     pub const fn from_fields_v7(unix_ts_ms: u64, rand_a: u16, rand_b: u64) -> Self {
+        match Self::try_from_fields_v7_inner(unix_ts_ms, rand_a, rand_b) {
+            Ok(value) => value,
+            Err(_) => panic!("invalid field value(s)"),
+        }
+    }
+
+    /// Creates a UUID byte array from UUIDv7 field values.
+    ///
+    /// # Errors
+    ///
+    /// Returns `Err` if any argument is out of the value range of the field.
+    pub const fn try_from_fields_v7(
+        unix_ts_ms: u64,
+        rand_a: u16,
+        rand_b: u64,
+    ) -> Result<Self, impl error::Error> {
+        Self::try_from_fields_v7_inner(unix_ts_ms, rand_a, rand_b)
+    }
+
+    const fn try_from_fields_v7_inner(
+        unix_ts_ms: u64,
+        rand_a: u16,
+        rand_b: u64,
+    ) -> Result<Self, FieldError> {
         if unix_ts_ms >= 1 << 48 || rand_a >= 1 << 12 || rand_b >= 1 << 62 {
-            panic!("invalid field value");
+            return Err(FieldError);
         }
 
-        Self([
+        Ok(Self([
             (unix_ts_ms >> 40) as u8,
             (unix_ts_ms >> 32) as u8,
             (unix_ts_ms >> 24) as u8,
@@ -49,7 +77,7 @@ impl Uuid {
             (rand_b >> 16) as u8,
             (rand_b >> 8) as u8,
             rand_b as u8,
-        ])
+        ]))
     }
 
     /// Returns the 8-4-4-4-12 hexadecimal string representation stored in a stack-allocated
@@ -277,6 +305,18 @@ impl fmt::Display for ParseError {
 }
 
 impl error::Error for ParseError {}
+
+/// An error creating a UUIDv7 from invalid field value(s).
+#[derive(Debug)]
+struct FieldError;
+
+impl fmt::Display for FieldError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "invalid field value(s)")
+    }
+}
+
+impl error::Error for FieldError {}
 
 /// The reserved UUID variants and the Nil and Max markers.
 ///

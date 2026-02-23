@@ -1,7 +1,8 @@
 # Changelog
 
-## Unreleased
+## v1.7.0 - unreleased
 
+- Added `try_from_fields_v7()` constructor to `Uuid`.
 - Minor documentation updates.
 
 ## v1.6.0 - 2026-02-22
