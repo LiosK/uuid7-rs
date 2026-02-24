@@ -74,7 +74,7 @@ impl GlobalGenInner {
             self.pid = std::process::id();
             self.generator.reset_state();
             if let Ok(rng) = GlobalGenRng::try_new() {
-                self.generator.replace_rand_source(rng);
+                *self.generator.rand_source_mut() = rng;
             }
         }
         &mut self.generator
