@@ -57,7 +57,7 @@ impl Uuid {
         rand_b: u64,
     ) -> Result<Self, FieldError> {
         if unix_ts_ms >= 1 << 48 || rand_a >= 1 << 12 || rand_b >= 1 << 62 {
-            return Err(FieldError);
+            return Err(FieldError(()));
         }
 
         Ok(Self([
@@ -308,7 +308,7 @@ impl error::Error for ParseError {}
 
 /// An error creating a UUIDv7 from invalid field value(s).
 #[derive(Debug)]
-struct FieldError;
+struct FieldError(());
 
 impl fmt::Display for FieldError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
