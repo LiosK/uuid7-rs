@@ -103,7 +103,7 @@ mod global_gen_rng {
             if self.counter >= RESEED_THRESHOLD {
                 self.try_to_reseed();
             }
-            self.counter += 32;
+            self.counter += 32 / 8;
             self.inner.next_u32()
         }
 
@@ -111,7 +111,7 @@ mod global_gen_rng {
             if self.counter >= RESEED_THRESHOLD {
                 self.try_to_reseed();
             }
-            self.counter += 64;
+            self.counter += 64 / 8;
             self.inner.next_u64()
         }
     }
@@ -139,7 +139,7 @@ mod global_gen_rng {
             inner: StdRng::seed_from_u64(seed),
         };
 
-        for _ in 0..(64 * 1024 / (32 + 32 + 64)) {
+        for _ in 0..(64 * 1024 / (32 / 8 + 32 / 8 + 64 / 8)) {
             assert_eq!(g1.next_u32(), g2.next_u32());
             assert_eq!(g1.next_u32(), g2.next_u32());
             assert_eq!(g1.next_u64(), g2.next_u64());
