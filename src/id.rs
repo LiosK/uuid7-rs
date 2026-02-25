@@ -34,7 +34,7 @@ impl Uuid {
     ///
     /// Panics if any argument is out of the value range of the field.
     pub const fn from_fields_v7(unix_ts_ms: u64, rand_a: u16, rand_b: u64) -> Self {
-        match Self::try_from_fields_v7_inner(unix_ts_ms, rand_a, rand_b) {
+        match Self::try_from_fields_v7(unix_ts_ms, rand_a, rand_b) {
             Ok(value) => value,
             Err(_) => panic!("invalid field value(s)"),
         }
@@ -49,17 +49,9 @@ impl Uuid {
         unix_ts_ms: u64,
         rand_a: u16,
         rand_b: u64,
-    ) -> Result<Self, impl error::Error> {
-        Self::try_from_fields_v7_inner(unix_ts_ms, rand_a, rand_b)
-    }
-
-    const fn try_from_fields_v7_inner(
-        unix_ts_ms: u64,
-        rand_a: u16,
-        rand_b: u64,
     ) -> Result<Self, FieldError> {
         if unix_ts_ms >= 1 << 48 || rand_a >= 1 << 12 || rand_b >= 1 << 62 {
-            return Err(FieldError(()));
+            return Err(FieldError { _private: () });
         }
 
         Ok(Self([
@@ -310,7 +302,9 @@ impl error::Error for ParseError {}
 
 /// An error creating a UUIDv7 from invalid field value(s).
 #[derive(Debug)]
-struct FieldError(());
+pub struct FieldError {
+    _private: (),
+}
 
 impl fmt::Display for FieldError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
