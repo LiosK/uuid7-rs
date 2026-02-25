@@ -1,3 +1,5 @@
+//! UUID value and related types.
+
 #[cfg(not(feature = "std"))]
 use core as std;
 
@@ -93,7 +95,7 @@ impl Uuid {
     /// let y = x.encode();
     /// assert_eq!(y, "01809424-3e59-7c05-9219-566f82fff672");
     /// assert_eq!(format!("{}", y), "01809424-3e59-7c05-9219-566f82fff672");
-    /// # Ok::<(), uuid7::ParseError>(())
+    /// # Ok::<(), uuid7::id::ParseError>(())
     /// ```
     pub const fn encode(&self) -> FStr<36> {
         const DIGITS: &[u8; 16] = b"0123456789abcdef";
@@ -130,7 +132,7 @@ impl Uuid {
     /// let y = x.encode_hex();
     /// assert_eq!(y, "018094243e597c059219566f82fff672");
     /// assert_eq!(format!("{}", y), "018094243e597c059219566f82fff672");
-    /// # Ok::<(), uuid7::ParseError>(())
+    /// # Ok::<(), uuid7::id::ParseError>(())
     /// ```
     pub const fn encode_hex(&self) -> FStr<32> {
         const DIGITS: &[u8; 16] = b"0123456789abcdef";

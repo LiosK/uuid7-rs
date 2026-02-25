@@ -153,7 +153,7 @@ mod global_gen_rng {
 #[cfg(test)]
 mod tests_v7 {
     use super::uuid7;
-    use crate::Variant;
+    use crate::id::Variant;
 
     use std::{collections, sync};
 
@@ -298,7 +298,7 @@ mod tests_v7 {
 #[cfg(test)]
 mod tests_v4 {
     use super::uuid4;
-    use crate::Variant;
+    use crate::id::Variant;
 
     use std::{collections, sync};
 

@@ -2,6 +2,9 @@
 
 ## v1.7.0 - unreleased
 
+- Exposed `id` module.
+- Deprecated the top-level re-exports of `ParseError` and `Variant` in favor of
+  `id::*`.
 - Added `try_from_fields_v7()` constructor to `Uuid`.
 - Upgraded `rand` crate used internally by `global_gen` from v0.9 to v0.10.
 - Minor documentation updates.

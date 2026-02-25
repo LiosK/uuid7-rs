@@ -122,8 +122,10 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 
-mod id;
-pub use id::{ParseError, Uuid, Variant};
+pub mod id;
+pub use id::Uuid;
+#[doc(hidden)]
+pub use id::{ParseError, Variant};
 
 pub mod generator;
 pub use generator::V7Generator;
