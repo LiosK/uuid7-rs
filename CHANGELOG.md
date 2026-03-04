@@ -2,12 +2,23 @@
 
 ## v1.7.0 - unreleased
 
-- Exposed `id` module.
-- Deprecated the top-level re-exports of `ParseError` and `Variant` in favor of
-  `id::*`.
-- Added `try_from_fields_v7()` constructor to `Uuid`.
+### Added
+
+- `Uuid::try_from_fields_v7()` constructor that validates input ranges and
+  returns a `Result<Uuid, FieldError>`, offering a safer alternative to the
+  panicking `from_fields_v7()`.
+- `id` module that provides access to `Variant`, `ParseError`, and the newly
+  added `FieldError`.
+
+### Deprecated
+
+- The top-level re-exports of `Variant` and `ParseError` in favor of
+  `uuid7::id::*`.
+
+### Maintenance
+
 - Upgraded `rand` crate used internally by `global_gen` from v0.9 to v0.10.
-- Minor documentation updates.
+- Minor refactoring and documentation updates.
 
 ## v1.6.0 - 2026-02-22
 
