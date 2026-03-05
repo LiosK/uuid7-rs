@@ -18,6 +18,7 @@
 ### Maintenance
 
 - Upgraded `rand` crate used internally by `global_gen` from v0.9 to v0.10.
+- Tweaked the `Debug` representation of `V7Generator`.
 - Minor refactoring and documentation updates.
 
 ## v1.6.0 - 2026-02-22

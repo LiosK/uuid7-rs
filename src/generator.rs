@@ -302,7 +302,7 @@ impl<R, T: fmt::Debug> fmt::Debug for V7Generator<R, T> {
         f.debug_struct("V7Generator")
             .field("time_source", &self.time_source)
             .field("rollback_allowance", &self.rollback_allowance)
-            .finish()
+            .finish_non_exhaustive()
     }
 }
 
