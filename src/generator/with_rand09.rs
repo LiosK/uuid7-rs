@@ -1,6 +1,7 @@
 //! Integration with `rand` (v0.9) crate.
 
 #![cfg(feature = "rand09")]
+#![deprecated(since = "1.7.0", note = "use a newer version of `rand` crate")]
 
 use super::{RandSource, V7Generator};
 use rand_core09::RngCore;

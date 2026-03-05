@@ -14,6 +14,7 @@
 
 - The top-level re-exports of `Variant` and `ParseError` in favor of
   `uuid7::id::*`.
+- `rand09` cargo feature and the integration of `rand` crate v0.9.
 
 ### Maintenance
 
