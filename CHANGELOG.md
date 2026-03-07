@@ -9,12 +9,16 @@
   panicking `from_fields_v7()`.
 - `id` module that provides access to `Variant`, `ParseError`, and the newly
   added `FieldError`.
+- `V7Generator::iter()` adapter that returns an infinite iterator producing new
+  UUIDv7 objects.
 
 ### Deprecated
 
 - The top-level re-exports of `Variant` and `ParseError` in favor of
   `uuid7::id::*`.
 - `rand09` cargo feature and the integration of `rand` crate v0.9.
+- The direct implementation of `Iterator` for `V7Generator` in favor of
+  `V7Generator::iter()`.
 
 ### Maintenance
 

@@ -163,6 +163,25 @@ impl<R: RandSource, T: TimeSource> V7Generator<R, T> {
         let unix_ts_ms = self.time_source.unix_ts_ms();
         self.generate_or_abort_with_ts(unix_ts_ms)
     }
+
+    /// Returns an infinite iterator that produces a new UUIDv7 object for each call of `next()`.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// # #[cfg(all(feature = "std", feature = "rand010"))]
+    /// # {
+    /// use uuid7::V7Generator;
+    ///
+    /// let mut g = V7Generator::with_rand010(rand::rng());
+    /// for (i, e) in g.iter().take(8).enumerate() {
+    ///     println!("[{}] {}", i, e);
+    /// }
+    /// # }
+    /// ```
+    pub fn iter(&mut self) -> impl Iterator<Item = Uuid> {
+        iter::from_fn(|| Some(self.generate()))
+    }
 }
 
 impl<R: RandSource, T> V7Generator<R, T> {
@@ -307,7 +326,7 @@ impl<R, T: fmt::Debug> fmt::Debug for V7Generator<R, T> {
 }
 
 /// Supports operations as an infinite iterator that produces a new UUIDv7 object for each call of
-/// `next()`.
+/// `next()`. This implementation is deprecated; use [`iter()`](V7Generator::iter) instead.
 ///
 /// # Examples
 ///
