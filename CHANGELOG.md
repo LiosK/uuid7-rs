@@ -16,7 +16,7 @@
 
 - The top-level re-exports of `Variant` and `ParseError` in favor of
   `uuid7::id::*`.
-- `rand09` cargo feature and the integration of `rand` crate v0.9.
+- `rand09` cargo feature and the integration with `rand` crate v0.9.
 - `Uuid::from_fields_v7()` constructor in favor of `try_from_fields_v7()`.
 - The direct implementation of `Iterator` for `V7Generator` in favor of
   `V7Generator::iter()`.
@@ -25,6 +25,7 @@
 
 - Upgraded `rand` crate used internally by `global_gen` from v0.9 to v0.10.
 - Tweaked the `Debug` representation of `V7Generator`.
+- Removed deprecated `Rng` trait alias from documentation.
 - Minor refactoring and documentation updates.
 
 ## v1.6.0 - 2026-02-22

@@ -16,6 +16,7 @@ pub trait RandSource {
 }
 
 #[deprecated(since = "1.5.0", note = "use `RandSource` instead")]
+#[doc(hidden)]
 pub use RandSource as Rng;
 
 pub mod with_rand010;
@@ -322,6 +323,7 @@ impl<R: Default, T: Default> Default for V7Generator<R, T> {
 impl<R, T: fmt::Debug> fmt::Debug for V7Generator<R, T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
         f.debug_struct("V7Generator")
+            // .field("rand_source", &self.rand_source) // commented out for backward compatibility
             .field("time_source", &self.time_source)
             .field("rollback_allowance", &self.rollback_allowance)
             .finish_non_exhaustive()
