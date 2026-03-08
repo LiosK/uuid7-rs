@@ -17,6 +17,7 @@
 - The top-level re-exports of `Variant` and `ParseError` in favor of
   `uuid7::id::*`.
 - `rand09` cargo feature and the integration of `rand` crate v0.9.
+- `Uuid::from_fields_v7()` constructor in favor of `try_from_fields_v7()`.
 - The direct implementation of `Iterator` for `V7Generator` in favor of
   `V7Generator::iter()`.
 

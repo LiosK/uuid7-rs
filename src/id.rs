@@ -33,6 +33,7 @@ impl Uuid {
     /// # Panics
     ///
     /// Panics if any argument is out of the value range of the field.
+    #[deprecated(since = "1.7.0", note = "use `try_from_fields_v7()` instead")]
     pub const fn from_fields_v7(unix_ts_ms: u64, rand_a: u16, rand_b: u64) -> Self {
         match Self::try_from_fields_v7(unix_ts_ms, rand_a, rand_b) {
             Ok(value) => value,
@@ -472,7 +473,7 @@ mod tests {
     fn encodes_and_decodes_prepared_cases_correctly() {
         for c in EXAMPLE_UUIDS {
             let Some(fs) = c.fields_v7 else { break };
-            let from_fields = Uuid::from_fields_v7(fs.0, fs.1, fs.2);
+            let from_fields = Uuid::try_from_fields_v7(fs.0, fs.1, fs.2).unwrap();
             assert_eq!(Ok(from_fields), c.hyphenated.parse());
             assert_eq!(Ok(from_fields), c.hyphenated.to_uppercase().parse());
             assert_eq!(Ok(from_fields), c.hex.parse());
@@ -562,7 +563,7 @@ mod tests {
     fn has_symmetric_converters() {
         for c in EXAMPLE_UUIDS {
             let Some(fs) = c.fields_v7 else { break };
-            let e = Uuid::from_fields_v7(fs.0, fs.1, fs.2);
+            let e = Uuid::try_from_fields_v7(fs.0, fs.1, fs.2).unwrap();
             assert_eq!(Uuid::from(<[u8; 16]>::from(e)), e);
             assert_eq!(Uuid::from(u128::from(e)), e);
             assert_eq!(e.encode().parse(), Ok(e));

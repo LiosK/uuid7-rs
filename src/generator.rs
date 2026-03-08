@@ -234,11 +234,14 @@ impl<R: RandSource, T> V7Generator<R, T> {
             return None;
         }
 
-        Some(Uuid::from_fields_v7(
-            self.timestamp_biased - 1,
-            (self.counter >> 30) as u16,
-            ((self.counter & 0x3fff_ffff) << 32) | self.rand_source.next_u32() as u64,
-        ))
+        Some(
+            Uuid::try_from_fields_v7(
+                self.timestamp_biased - 1,
+                (self.counter >> 30) as u16,
+                ((self.counter & 0x3fff_ffff) << 32) | self.rand_source.next_u32() as u64,
+            )
+            .unwrap(),
+        )
     }
 
     /// Generates a new UUIDv4 object utilizing the random number generator inside.
