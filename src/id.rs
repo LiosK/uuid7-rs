@@ -474,14 +474,14 @@ mod tests {
         for c in EXAMPLE_UUIDS {
             let Some(fs) = c.fields_v7 else { break };
             let from_fields = Uuid::try_from_fields_v7(fs.0, fs.1, fs.2).unwrap();
-            assert_eq!(Ok(from_fields), c.hyphenated.parse());
-            assert_eq!(Ok(from_fields), c.hyphenated.to_uppercase().parse());
-            assert_eq!(Ok(from_fields), c.hex.parse());
-            assert_eq!(Ok(from_fields), c.hex.to_uppercase().parse());
-            assert_eq!(Ok(from_fields), c.braced.parse());
-            assert_eq!(Ok(from_fields), c.braced.to_uppercase().parse());
-            assert_eq!(Ok(from_fields), c.urn.parse());
-            assert_eq!(Ok(from_fields), c.urn.to_uppercase().parse());
+            assert_eq!(from_fields, c.hyphenated.parse().unwrap());
+            assert_eq!(from_fields, c.hyphenated.to_uppercase().parse().unwrap());
+            assert_eq!(from_fields, c.hex.parse().unwrap());
+            assert_eq!(from_fields, c.hex.to_uppercase().parse().unwrap());
+            assert_eq!(from_fields, c.braced.parse().unwrap());
+            assert_eq!(from_fields, c.braced.to_uppercase().parse().unwrap());
+            assert_eq!(from_fields, c.urn.parse().unwrap());
+            assert_eq!(from_fields, c.urn.to_uppercase().parse().unwrap());
 
             assert_eq!(&from_fields.encode() as &str, c.hyphenated);
             assert_eq!(&from_fields.encode_hex() as &str, c.hex);
@@ -566,12 +566,12 @@ mod tests {
             let e = Uuid::try_from_fields_v7(fs.0, fs.1, fs.2).unwrap();
             assert_eq!(Uuid::from(<[u8; 16]>::from(e)), e);
             assert_eq!(Uuid::from(u128::from(e)), e);
-            assert_eq!(e.encode().parse(), Ok(e));
-            assert_eq!(e.encode().to_uppercase().parse(), Ok(e));
+            assert_eq!(e.encode().parse::<Uuid>().unwrap(), e);
+            assert_eq!(e.encode().to_uppercase().parse::<Uuid>().unwrap(), e);
             #[cfg(feature = "std")]
-            assert_eq!(Uuid::try_from(e.to_string()), Ok(e));
+            assert_eq!(Uuid::try_from(e.to_string()).unwrap(), e);
             #[cfg(feature = "std")]
-            assert_eq!(Uuid::try_from(e.to_string().to_uppercase()), Ok(e));
+            assert_eq!(Uuid::try_from(e.to_string().to_uppercase()).unwrap(), e);
             #[cfg(feature = "uuid")]
             assert_eq!(Uuid::from(<uuid::Uuid>::from(e)), e);
 
