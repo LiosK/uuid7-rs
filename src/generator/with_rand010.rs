@@ -26,7 +26,7 @@ impl<T: Rng> V7Generator<Adapter<T>> {
     /// # Examples
     ///
     /// ```rust
-    /// # #[cfg(all(feature = "std", feature = "rand010"))]
+    /// # #[cfg(feature = "std")]
     /// # {
     /// use uuid7::V7Generator;
     ///
