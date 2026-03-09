@@ -1,12 +1,6 @@
 use super::*;
 use std::cell;
 
-impl V7Generator<()> {
-    pub(crate) fn for_testing() -> V7Generator<impl RandSource, impl TimeSource> {
-        V7Generator::with_rand_and_time_sources(new_rand_source(), new_time_source())
-    }
-}
-
 impl Uuid {
     fn timestamp(&self) -> u64 {
         assert_eq!(self.version(), Some(7));
@@ -175,6 +169,12 @@ fn handle_clock_rollback() {
                 assert!(curr.is_none());
             }
         }
+    }
+}
+
+impl V7Generator<()> {
+    fn for_testing() -> V7Generator<impl RandSource, impl TimeSource> {
+        V7Generator::with_rand_and_time_sources(new_rand_source(), new_time_source())
     }
 }
 
