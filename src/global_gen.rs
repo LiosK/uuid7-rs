@@ -4,7 +4,7 @@
 
 use std::sync;
 
-use crate::{Uuid, V7Generator};
+use crate::{Uuid, V7Generator, generator::RandSource as _};
 
 /// Returns the lock handle of process-wide global generator, creating one if none exists.
 fn lock_global_gen() -> sync::MutexGuard<'static, GlobalGenInner> {
@@ -40,7 +40,14 @@ pub fn uuid7() -> Uuid {
 /// println!("{}", uuid); // e.g., "2ca4b2ce-6c13-40d4-bccf-37d222820f6f"
 /// ```
 pub fn uuid4() -> Uuid {
-    lock_global_gen().get_mut().generate_v4()
+    let mut lock = lock_global_gen();
+    let rand_source = lock.get_mut().rand_source_mut();
+    let mut bytes = [0u8; 16];
+    bytes[..8].copy_from_slice(&rand_source.next_u64().to_le_bytes());
+    bytes[8..].copy_from_slice(&rand_source.next_u64().to_le_bytes());
+    bytes[6] = 0x40 | (bytes[6] >> 4);
+    bytes[8] = 0x80 | (bytes[8] >> 2);
+    Uuid::from(bytes)
 }
 
 use global_gen_rng::GlobalGenRng;

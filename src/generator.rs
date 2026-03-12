@@ -140,7 +140,7 @@ impl<R, T> V7Generator<R, T> {
     }
 
     /// Returns a mutable reference to the inner random number source.
-    #[cfg(all(unix, feature = "global_gen"))]
+    #[cfg(feature = "global_gen")]
     pub(crate) fn rand_source_mut(&mut self) -> &mut R {
         &mut self.rand_source
     }
@@ -243,17 +243,6 @@ impl<R: RandSource, T> V7Generator<R, T> {
             )
             .unwrap(),
         )
-    }
-
-    /// Generates a new UUIDv4 object utilizing the random number generator inside.
-    #[cfg(feature = "global_gen")]
-    pub(crate) fn generate_v4(&mut self) -> Uuid {
-        let mut bytes = [0u8; 16];
-        bytes[..8].copy_from_slice(&self.rand_source.next_u64().to_le_bytes());
-        bytes[8..].copy_from_slice(&self.rand_source.next_u64().to_le_bytes());
-        bytes[6] = 0x40 | (bytes[6] >> 4);
-        bytes[8] = 0x80 | (bytes[8] >> 2);
-        Uuid::from(bytes)
     }
 
     /// Generates a new UUIDv7 object from the `unix_ts_ms` passed, or resets the generator upon
