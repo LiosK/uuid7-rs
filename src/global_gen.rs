@@ -8,7 +8,15 @@ use crate::{Uuid, V7Generator, generator::RandSource as _};
 
 /// Returns the lock handle of process-wide global generator, creating one if none exists.
 fn lock_global_gen() -> sync::MutexGuard<'static, GlobalGenInner> {
-    static G: sync::LazyLock<sync::Mutex<GlobalGenInner>> = sync::LazyLock::new(Default::default);
+    static G: sync::LazyLock<sync::Mutex<GlobalGenInner>> = sync::LazyLock::new(|| {
+        sync::Mutex::new(GlobalGenInner {
+            #[cfg(unix)]
+            pid: std::process::id(),
+            generator: V7Generator::new(
+                GlobalGenRng::try_new().expect("uuid7: could not initialize global generator"),
+            ),
+        })
+    });
     G.lock().expect("uuid7: could not lock global generator")
 }
 
@@ -58,18 +66,6 @@ struct GlobalGenInner {
     #[cfg(unix)]
     pid: u32,
     generator: V7Generator<GlobalGenRng>,
-}
-
-impl Default for GlobalGenInner {
-    fn default() -> Self {
-        Self {
-            #[cfg(unix)]
-            pid: std::process::id(),
-            generator: V7Generator::new(
-                GlobalGenRng::try_new().expect("uuid7: could not initialize global generator"),
-            ),
-        }
-    }
 }
 
 impl GlobalGenInner {
