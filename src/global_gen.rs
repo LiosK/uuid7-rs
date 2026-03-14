@@ -50,9 +50,9 @@ pub fn uuid7() -> Uuid {
 pub fn uuid4() -> Uuid {
     let mut lock = lock_global_gen();
     let rand_source = lock.get_mut().rand_source_mut();
-    let hi = rand_source.next_u64() & !(0xf << 12) | (0x4 << 12);
-    let lo = rand_source.next_u64() & !(0b11 << 62) | (0b10 << 62);
-    (u128::from(hi) << 64 | u128::from(lo)).to_be_bytes().into()
+    let a = rand_source.next_u64() & !(0xf << 52) | (0x4 << 52);
+    let b = rand_source.next_u64() & !(0b11 << 6) | (0b10 << 6);
+    (u128::from(a) | u128::from(b) << 64).to_le_bytes().into()
 }
 
 use global_gen_rng::GlobalGenRng;
