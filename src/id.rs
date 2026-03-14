@@ -93,19 +93,14 @@ impl Uuid {
     pub const fn encode(&self) -> FStr<36> {
         const DIGITS: &[u8; 16] = b"0123456789abcdef";
 
-        let mut buffer = [0u8; 36];
+        let w = [0, 2, 4, 6, 9, 11, 14, 16, 19, 21, 24, 26, 28, 30, 32, 34];
+        let mut buffer = [b'-'; 36];
         let mut r = 0;
-        let mut w = 0;
         while r < 16 {
             let e = self.0[r] as usize;
-            buffer[w] = DIGITS[e >> 4];
-            buffer[w + 1] = DIGITS[e & 15];
-            if r == 3 || r == 5 || r == 7 || r == 9 {
-                buffer[w + 2] = b'-';
-                w += 1;
-            }
+            buffer[w[r]] = DIGITS[e >> 4];
+            buffer[w[r] + 1] = DIGITS[e & 15];
             r += 1;
-            w += 2;
         }
 
         // SAFETY: ok because buffer consists of ASCII bytes
@@ -130,15 +125,14 @@ impl Uuid {
     pub const fn encode_hex(&self) -> FStr<32> {
         const DIGITS: &[u8; 16] = b"0123456789abcdef";
 
-        let mut buffer = [0u8; 32];
+        let w = [0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30];
+        let mut buffer = [b'0'; 32];
         let mut r = 0;
-        let mut w = 0;
         while r < 16 {
             let e = self.0[r] as usize;
-            buffer[w] = DIGITS[e >> 4];
-            buffer[w + 1] = DIGITS[e & 15];
+            buffer[w[r]] = DIGITS[e >> 4];
+            buffer[w[r] + 1] = DIGITS[e & 15];
             r += 1;
-            w += 2;
         }
 
         // SAFETY: ok because buffer consists of ASCII bytes
