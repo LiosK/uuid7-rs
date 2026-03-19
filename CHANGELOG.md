@@ -21,8 +21,10 @@
 - The direct implementation of `Iterator` for `V7Generator` in favor of
   `V7Generator::iter()`.
 
-### Maintenance
+### Maintenance and refactoring
 
+- Separated the fork detection functionality of the global generator as an
+  independent `forkguard` crate.
 - Upgraded `rand` crate used internally by `global_gen` from v0.9 to v0.10.
 - Tweaked the `Debug` representation of `V7Generator`.
 - Removed deprecated `Rng` trait alias from documentation.

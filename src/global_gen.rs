@@ -10,8 +10,7 @@ use crate::{Uuid, V7Generator, generator::RandSource as _};
 fn lock_global_gen() -> sync::MutexGuard<'static, GlobalGenInner> {
     static G: sync::LazyLock<sync::Mutex<GlobalGenInner>> = sync::LazyLock::new(|| {
         sync::Mutex::new(GlobalGenInner {
-            #[cfg(unix)]
-            pid: std::process::id(),
+            guard: forkguard::new(),
             generator: V7Generator::new(
                 GlobalGenRng::try_new().expect("uuid7: could not initialize global generator"),
             ),
@@ -23,8 +22,8 @@ fn lock_global_gen() -> sync::MutexGuard<'static, GlobalGenInner> {
 /// Generates a UUIDv7 object.
 ///
 /// This function employs a global generator and guarantees the process-wide monotonic order of
-/// UUIDs generated within the same millisecond. On Unix, this function resets the generator when
-/// the process ID changes (i.e., upon process forks) to prevent collisions across processes.
+/// UUIDs generated within the same millisecond. On Unix, this function resets the generator when a
+/// process fork is detected to prevent collisions across processes.
 ///
 /// # Examples
 ///
@@ -59,21 +58,18 @@ pub fn uuid4() -> Uuid {
 
 use global_gen_rng::GlobalGenRng;
 
-/// A thin wrapper to reset the state when the process ID changes (i.e., upon Unix forks).
+/// A thin wrapper to reset the state when a process fork is detected.
 #[derive(Debug)]
 struct GlobalGenInner {
-    #[cfg(unix)]
-    pid: u32,
+    guard: forkguard::Guard,
     generator: V7Generator<GlobalGenRng>,
 }
 
 impl GlobalGenInner {
-    /// Returns a mutable reference to the inner [`V7Generator`] instance, reseting the
-    /// generator state on Unix if the process ID has changed.
+    /// Returns a mutable reference to the inner [`V7Generator`] instance, reseting the generator
+    /// state on Unix if a process fork is detected.
     fn get_mut(&mut self) -> &mut V7Generator<GlobalGenRng> {
-        #[cfg(unix)]
-        if self.pid != std::process::id() {
-            self.pid = std::process::id();
+        if self.guard.detected_fork() {
             self.generator.reset_state();
             if let Ok(rng) = GlobalGenRng::try_new() {
                 *self.generator.rand_source_mut() = rng;

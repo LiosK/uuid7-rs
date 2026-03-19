@@ -68,6 +68,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d9c4f5dac5e15c24eb999c26181a6ca40b39fe946cbe4c263c7209467bc83af2"
 
 [[package]]
+name = "forkguard"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4788b8c22c438e3a452016057ed5b06f0ff744dc439c0f1f17f2be61562b7aaa"
+
+[[package]]
 name = "fstr"
 version = "0.2.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -364,6 +370,7 @@ dependencies = [
 name = "uuid7"
 version = "1.7.0-rc.3"
 dependencies = [
+ "forkguard",
  "fstr",
  "rand",
  "rand_core 0.10.0",
