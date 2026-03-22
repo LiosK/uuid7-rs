@@ -257,15 +257,12 @@ impl<R: RandSource, T> V7Generator<R, T> {
     /// Panics if `unix_ts_ms` is not a 48-bit unsigned integer.
     #[deprecated(since = "1.5.0", note = "use `generate_or_reset_with_ts()` instead")]
     pub fn generate_or_reset_core(&mut self, unix_ts_ms: u64, rollback_allowance: u64) -> Uuid {
-        #[allow(deprecated)]
-        if let Some(value) = self.generate_or_abort_core(unix_ts_ms, rollback_allowance) {
-            value
-        } else {
-            // reset state and resume
-            self.reset_state();
-            self.generate_or_abort_core(unix_ts_ms, rollback_allowance)
-                .unwrap()
-        }
+        let guard = GenerateCorePanicGuard {
+            orig_rollback_allowance: self.rollback_allowance,
+            inner: self,
+        };
+        guard.inner.set_rollback_allowance(rollback_allowance);
+        guard.inner.generate_or_reset_with_ts(unix_ts_ms)
     }
 
     /// Generates a new UUIDv7 object from the `unix_ts_ms` passed, or returns `None` upon
@@ -284,22 +281,23 @@ impl<R: RandSource, T> V7Generator<R, T> {
         unix_ts_ms: u64,
         rollback_allowance: u64,
     ) -> Option<Uuid> {
-        struct PanicGuard<'a, R, T> {
-            orig_rollback_allowance: u64,
-            inner: &'a mut V7Generator<R, T>,
-        }
-        impl<R, T> Drop for PanicGuard<'_, R, T> {
-            fn drop(&mut self) {
-                self.inner.rollback_allowance = self.orig_rollback_allowance;
-            }
-        }
-
-        let guard = PanicGuard {
+        let guard = GenerateCorePanicGuard {
             orig_rollback_allowance: self.rollback_allowance,
             inner: self,
         };
         guard.inner.set_rollback_allowance(rollback_allowance);
         guard.inner.generate_or_abort_with_ts(unix_ts_ms)
+    }
+}
+
+struct GenerateCorePanicGuard<'a, R, T> {
+    orig_rollback_allowance: u64,
+    inner: &'a mut V7Generator<R, T>,
+}
+
+impl<R, T> Drop for GenerateCorePanicGuard<'_, R, T> {
+    fn drop(&mut self) {
+        self.inner.rollback_allowance = self.orig_rollback_allowance;
     }
 }
 
