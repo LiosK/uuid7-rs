@@ -69,9 +69,9 @@ checksum = "d9c4f5dac5e15c24eb999c26181a6ca40b39fe946cbe4c263c7209467bc83af2"
 
 [[package]]
 name = "forkguard"
-version = "0.1.0"
+version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4788b8c22c438e3a452016057ed5b06f0ff744dc439c0f1f17f2be61562b7aaa"
+checksum = "61bab9e346d9936120193360409a5ef77c7fb32ad20322aae22ce7994678713c"
 
 [[package]]
 name = "fstr"
@@ -134,9 +134,9 @@ dependencies = [
 
 [[package]]
 name = "itoa"
-version = "1.0.17"
+version = "1.0.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "92ecc6618181def0457392ccd0ee51198e065e016d1d527a7ac1b6dc7c1f09d2"
+checksum = "8f42a60cbdf9a97f5d2305f08a87dc4e09308d1276d28c869c684d7777685682"
 
 [[package]]
 name = "js-sys"
@@ -368,7 +368,7 @@ dependencies = [
 
 [[package]]
 name = "uuid7"
-version = "1.7.0-rc.3"
+version = "1.7.0-rc.4"
 dependencies = [
  "forkguard",
  "fstr",
