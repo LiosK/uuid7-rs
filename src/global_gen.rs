@@ -98,18 +98,18 @@ mod global_gen_rng {
 
     impl RandSource for GlobalGenRng {
         fn next_u32(&mut self) -> u32 {
-            if self.counter >= RESEED_THRESHOLD {
-                self.try_to_reseed();
-            }
             self.counter += 32 / 8;
+            if self.counter > RESEED_THRESHOLD {
+                self.reset_after_reseed_attempt_at(32 / 8);
+            }
             self.inner.next_u32()
         }
 
         fn next_u64(&mut self) -> u64 {
-            if self.counter >= RESEED_THRESHOLD {
-                self.try_to_reseed();
-            }
             self.counter += 64 / 8;
+            if self.counter > RESEED_THRESHOLD {
+                self.reset_after_reseed_attempt_at(64 / 8);
+            }
             self.inner.next_u64()
         }
     }
@@ -120,10 +120,11 @@ mod global_gen_rng {
         }
 
         #[cold]
-        fn try_to_reseed(&mut self) {
-            if let Ok(rng) = Self::try_new() {
-                *self = rng;
+        fn reset_after_reseed_attempt_at(&mut self, pos: usize) {
+            if let Ok(inner) = StdRng::try_from_rng(&mut SysRng) {
+                self.inner = inner;
             }
+            self.counter = pos;
         }
     }
 
