@@ -377,7 +377,7 @@ dependencies = [
 
 [[package]]
 name = "uuid7"
-version = "1.7.0-rc.4"
+version = "1.7.0"
 dependencies = [
  "forkguard",
  "fstr",
