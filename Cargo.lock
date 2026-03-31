@@ -271,6 +271,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dc897dd8d9e8bd1ed8cdad82b5966c3e0ecae09fb1907d58efaa013543185d0a"
 
 [[package]]
+name = "reseeding_rng"
+version = "0.10.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "75068467a9d1c046e8f723173439e1339b0c06ca86981bd5926525829105ab86"
+dependencies = [
+ "rand_core 0.10.0",
+]
+
+[[package]]
 name = "rustversion"
 version = "1.0.22"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -377,6 +386,7 @@ dependencies = [
  "rand_core 0.6.4",
  "rand_core 0.9.5",
  "regex",
+ "reseeding_rng",
  "serde",
  "serde_test",
  "uuid",

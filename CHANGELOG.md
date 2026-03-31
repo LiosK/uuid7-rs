@@ -23,8 +23,8 @@
 
 ### Maintenance and refactoring
 
-- Separated the fork detection functionality of the global generator as an
-  independent `forkguard` crate.
+- Separated the fork detection and reseeding functionality of the global
+  generator as independent `forkguard` and `reseeding_rng` crates.
 - Upgraded `rand` crate used internally by `global_gen` from v0.9 to v0.10.
 - Tweaked the `Debug` representation of `V7Generator`.
 - Removed deprecated `Rng` trait alias from documentation.
