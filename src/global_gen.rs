@@ -173,42 +173,6 @@ mod tests_v7 {
         }
     }
 
-    /// Sets constant bits and random bits properly
-    #[test]
-    fn sets_constant_bits_and_random_bits_properly() {
-        // count '1' of each bit
-        let mut bins = [0u32; 128];
-        for e in &SAMPLES[..] {
-            let mut it = bins.iter_mut().rev();
-            for c in e.chars().rev() {
-                if let Some(mut num) = c.to_digit(16) {
-                    for _ in 0..4 {
-                        *it.next().unwrap() += num & 1;
-                        num >>= 1;
-                    }
-                }
-            }
-        }
-
-        // test if constant bits are all set to 1 or 0
-        let n = N_SAMPLES as u32;
-        assert_eq!(bins[48], 0, "version bit 48");
-        assert_eq!(bins[49], n, "version bit 49");
-        assert_eq!(bins[50], n, "version bit 50");
-        assert_eq!(bins[51], n, "version bit 51");
-        assert_eq!(bins[64], n, "variant bit 64");
-        assert_eq!(bins[65], 0, "variant bit 65");
-
-        // test if random bits are set to 1 at ~50% probability
-        // set margin based on binom dist 99.999% confidence interval
-        let margin = 4.417173 * (0.5 * 0.5 / N_SAMPLES as f64).sqrt();
-        #[allow(clippy::needless_range_loop)]
-        for i in 96..128 {
-            let p = bins[i] as f64 / N_SAMPLES as f64;
-            assert!((p - 0.5).abs() < margin, "random bit {}: {}", i, p);
-        }
-    }
-
     /// Sets correct variant and version bits
     #[test]
     fn sets_correct_variant_and_version_bits() {
@@ -246,6 +210,47 @@ mod tests_v7 {
         assert_eq!(s.len(), 4 * 10_000);
         Ok(())
     }
+
+    /// Tests in this module may occasionally fail.
+    mod fallible {
+        use super::{N_SAMPLES, SAMPLES};
+
+        /// Sets constant bits and random bits properly
+        #[test]
+        fn sets_constant_bits_and_random_bits_properly() {
+            // count '1' of each bit
+            let mut bins = [0u32; 128];
+            for e in &SAMPLES[..] {
+                let mut it = bins.iter_mut().rev();
+                for c in e.chars().rev() {
+                    if let Some(mut num) = c.to_digit(16) {
+                        for _ in 0..4 {
+                            *it.next().unwrap() += num & 1;
+                            num >>= 1;
+                        }
+                    }
+                }
+            }
+
+            // test if constant bits are all set to 1 or 0
+            let n = N_SAMPLES as u32;
+            assert_eq!(bins[48], 0, "version bit 48");
+            assert_eq!(bins[49], n, "version bit 49");
+            assert_eq!(bins[50], n, "version bit 50");
+            assert_eq!(bins[51], n, "version bit 51");
+            assert_eq!(bins[64], n, "variant bit 64");
+            assert_eq!(bins[65], 0, "variant bit 65");
+
+            // test if random bits are set to 1 at ~50% probability
+            // set margin based on binom dist 99.999% confidence interval
+            let margin = 4.417173 * (0.5 * 0.5 / N_SAMPLES as f64).sqrt();
+            #[allow(clippy::needless_range_loop)]
+            for i in 96..128 {
+                let p = bins[i] as f64 / N_SAMPLES as f64;
+                assert!((p - 0.5).abs() < margin, "random bit {}: {}", i, p);
+            }
+        }
+    }
 }
 
 #[cfg(test)]
@@ -276,41 +281,6 @@ mod tests_v4 {
         assert_eq!(s.len(), N_SAMPLES);
     }
 
-    /// Sets constant bits and random bits properly
-    #[test]
-    fn sets_constant_bits_and_random_bits_properly() {
-        // count '1' of each bit
-        let mut bins = [0u32; 128];
-        for e in &SAMPLES[..] {
-            let mut it = bins.iter_mut().rev();
-            for c in e.chars().rev() {
-                if let Some(mut num) = c.to_digit(16) {
-                    for _ in 0..4 {
-                        *it.next().unwrap() += num & 1;
-                        num >>= 1;
-                    }
-                }
-            }
-        }
-
-        // test if constant bits are all set to 1 or 0
-        let n = N_SAMPLES as u32;
-        assert_eq!(bins[48], 0, "version bit 48");
-        assert_eq!(bins[49], n, "version bit 49");
-        assert_eq!(bins[50], 0, "version bit 50");
-        assert_eq!(bins[51], 0, "version bit 51");
-        assert_eq!(bins[64], n, "variant bit 64");
-        assert_eq!(bins[65], 0, "variant bit 65");
-
-        // test if random bits are set to 1 at ~50% probability
-        // set margin based on binom dist 99.999% confidence interval
-        let margin = 4.417173 * (0.5 * 0.5 / N_SAMPLES as f64).sqrt();
-        for i in (0..48).chain(52..64).chain(66..128) {
-            let p = bins[i] as f64 / N_SAMPLES as f64;
-            assert!((p - 0.5).abs() < margin, "random bit {}: {}", i, p);
-        }
-    }
-
     /// Sets correct variant and version bits
     #[test]
     fn sets_correct_variant_and_version_bits() {
@@ -318,6 +288,46 @@ mod tests_v4 {
             let e = uuid4();
             assert_eq!(e.variant(), Variant::Var10);
             assert_eq!(e.version(), Some(4));
+        }
+    }
+
+    /// Tests in this module may occasionally fail.
+    mod fallible {
+        use super::{N_SAMPLES, SAMPLES};
+
+        /// Sets constant bits and random bits properly
+        #[test]
+        fn sets_constant_bits_and_random_bits_properly() {
+            // count '1' of each bit
+            let mut bins = [0u32; 128];
+            for e in &SAMPLES[..] {
+                let mut it = bins.iter_mut().rev();
+                for c in e.chars().rev() {
+                    if let Some(mut num) = c.to_digit(16) {
+                        for _ in 0..4 {
+                            *it.next().unwrap() += num & 1;
+                            num >>= 1;
+                        }
+                    }
+                }
+            }
+
+            // test if constant bits are all set to 1 or 0
+            let n = N_SAMPLES as u32;
+            assert_eq!(bins[48], 0, "version bit 48");
+            assert_eq!(bins[49], n, "version bit 49");
+            assert_eq!(bins[50], 0, "version bit 50");
+            assert_eq!(bins[51], 0, "version bit 51");
+            assert_eq!(bins[64], n, "variant bit 64");
+            assert_eq!(bins[65], 0, "variant bit 65");
+
+            // test if random bits are set to 1 at ~50% probability
+            // set margin based on binom dist 99.999% confidence interval
+            let margin = 4.417173 * (0.5 * 0.5 / N_SAMPLES as f64).sqrt();
+            for i in (0..48).chain(52..64).chain(66..128) {
+                let p = bins[i] as f64 / N_SAMPLES as f64;
+                assert!((p - 0.5).abs() < margin, "random bit {}: {}", i, p);
+            }
         }
     }
 }
