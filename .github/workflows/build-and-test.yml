@@ -1,0 +1,25 @@
+name: Build and Test
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build-and-test:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v6
+      - run: cargo build --verbose
+      - run: cargo build --verbose --all-features
+      - run: cargo build --verbose --no-default-features
+      - run: cargo test --verbose
+      - run: cargo test --verbose --all-features
+      - run: cargo test --verbose --no-default-features --tests

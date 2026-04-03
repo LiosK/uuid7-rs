@@ -9,6 +9,7 @@ description = "A Rust implementation of UUID version 7"
 repository = "https://github.com/LiosK/uuid7-rs"
 documentation = "https://docs.rs/uuid7"
 keywords = ["identifier", "uuid", "guid"]
+exclude = ["/.github/"]
 
 [features]
 default = ["global_gen"]
