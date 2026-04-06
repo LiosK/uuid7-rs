@@ -45,3 +45,7 @@ serde_test = "1.0"
 # RUSTDOCFLAGS="--cfg docsrs" cargo +nightly doc --all-features --no-deps --open
 all-features = true
 rustdoc-args = ["--cfg", "docsrs"]
+
+[[example]]
+name = "uuid7"
+required-features = ["global_gen"]
