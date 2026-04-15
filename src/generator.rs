@@ -257,12 +257,10 @@ impl<R: RandSource, T> V7Generator<R, T> {
     /// Panics if `unix_ts_ms` is not a 48-bit unsigned integer.
     #[deprecated(since = "1.5.0", note = "use `generate_or_reset_with_ts()` instead")]
     pub fn generate_or_reset_core(&mut self, unix_ts_ms: u64, rollback_allowance: u64) -> Uuid {
-        let guard = GenerateCorePanicGuard {
-            orig_rollback_allowance: self.rollback_allowance,
-            inner: self,
-        };
-        guard.inner.set_rollback_allowance(rollback_allowance);
-        guard.inner.generate_or_reset_with_ts(unix_ts_ms)
+        let orig = self.rollback_allowance;
+        let guard = ScopeGuard(self, |t| t.rollback_allowance = orig);
+        guard.0.set_rollback_allowance(rollback_allowance);
+        guard.0.generate_or_reset_with_ts(unix_ts_ms)
     }
 
     /// Generates a new UUIDv7 object from the `unix_ts_ms` passed, or returns `None` upon
@@ -281,23 +279,18 @@ impl<R: RandSource, T> V7Generator<R, T> {
         unix_ts_ms: u64,
         rollback_allowance: u64,
     ) -> Option<Uuid> {
-        let guard = GenerateCorePanicGuard {
-            orig_rollback_allowance: self.rollback_allowance,
-            inner: self,
-        };
-        guard.inner.set_rollback_allowance(rollback_allowance);
-        guard.inner.generate_or_abort_with_ts(unix_ts_ms)
+        let orig = self.rollback_allowance;
+        let guard = ScopeGuard(self, |t| t.rollback_allowance = orig);
+        guard.0.set_rollback_allowance(rollback_allowance);
+        guard.0.generate_or_abort_with_ts(unix_ts_ms)
     }
 }
 
-struct GenerateCorePanicGuard<'a, R, T> {
-    orig_rollback_allowance: u64,
-    inner: &'a mut V7Generator<R, T>,
-}
+struct ScopeGuard<'a, T, F: FnMut(&mut T)>(&'a mut T, F);
 
-impl<R, T> Drop for GenerateCorePanicGuard<'_, R, T> {
+impl<T, F: FnMut(&mut T)> Drop for ScopeGuard<'_, T, F> {
     fn drop(&mut self) {
-        self.inner.rollback_allowance = self.orig_rollback_allowance;
+        self.1(self.0)
     }
 }
 
