@@ -14,7 +14,7 @@ exclude = ["/.github/"]
 [features]
 default = ["global_gen"]
 std = ["fstr/std"]
-global_gen = ["std", "dep:rand", "dep:forkguard", "dep:reseeding_rng"]
+global_gen = ["std", "dep:forkguard", "dep:reseeding_rng"]
 
 rand010 = ["dep:rand_core010"]
 rand09 = ["dep:rand_core09"]
@@ -28,8 +28,7 @@ fstr = { version = "0.2", default-features = false }
 rand_core06 = { package = "rand_core", version = "0.6", default-features = false }
 
 forkguard = { version = "0.1", optional = true }
-reseeding_rng = { version = "0.10", optional = true }
-rand = { version = "0.10", default-features = false, features = ["std", "std_rng", "sys_rng"], optional = true }
+reseeding_rng = { version = "0.10.5", features = ["std_rng"], optional = true }
 
 rand_core010 = { package = "rand_core", version = "0.10", default-features = false, optional = true }
 rand_core09 = { package = "rand_core", version = "0.9", default-features = false, optional = true }

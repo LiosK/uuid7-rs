@@ -2,23 +2,15 @@
 
 #![cfg(feature = "global_gen")]
 
-use std::{error, sync};
+use std::sync;
 
-use rand::{Rng as _, rngs};
-use reseeding_rng::ReseedingRng;
+use reseeding_rng::{RngExt as _, StdReseedingRng};
 
 use crate::{Uuid, V7Generator, generator::RandSource};
 
 /// Returns the lock handle of process-wide global generator, creating one if none exists.
 fn lock_global_gen() -> sync::MutexGuard<'static, GlobalGenInner> {
-    static G: sync::LazyLock<sync::Mutex<GlobalGenInner>> = sync::LazyLock::new(|| {
-        sync::Mutex::new(GlobalGenInner {
-            guard: forkguard::new(),
-            generator: V7Generator::new(
-                GlobalGenRng::try_new().expect("uuid7: could not initialize global generator"),
-            ),
-        })
-    });
+    static G: sync::LazyLock<sync::Mutex<GlobalGenInner>> = sync::LazyLock::new(Default::default);
     G.lock().expect("uuid7: could not lock global generator")
 }
 
@@ -60,7 +52,7 @@ pub fn uuid4() -> Uuid {
 }
 
 /// A thin wrapper to reset the state when a process fork is detected.
-#[derive(Debug)]
+#[derive(Debug, Default)]
 struct GlobalGenInner {
     guard: forkguard::Guard,
     generator: V7Generator<GlobalGenRng>,
@@ -72,34 +64,23 @@ impl GlobalGenInner {
     fn get_mut(&mut self) -> &mut V7Generator<GlobalGenRng> {
         if self.guard.detected_fork() {
             self.generator.reset_state();
-            let _ = self.generator.rand_source_mut().try_reseed();
+            let _ = self.generator.rand_source_mut().0.try_reseed();
         }
         &mut self.generator
     }
 }
 
 /// A reseeding pseudorandom number generator.
-#[derive(Debug)]
-struct GlobalGenRng(ReseedingRng<rngs::StdRng, rngs::SysRng>);
+#[derive(Debug, Default)]
+struct GlobalGenRng(StdReseedingRng);
 
 impl RandSource for GlobalGenRng {
     fn next_u32(&mut self) -> u32 {
-        self.0.next_u32()
+        self.0.random()
     }
 
     fn next_u64(&mut self) -> u64 {
-        self.0.next_u64()
-    }
-}
-
-impl GlobalGenRng {
-    fn try_new() -> Result<Self, impl error::Error> {
-        ReseedingRng::try_new(1024 * 64, rngs::SysRng).map(Self)
-    }
-
-    #[cold]
-    fn try_reseed(&mut self) -> Result<(), impl error::Error> {
-        self.0.try_reseed()
+        self.0.random()
     }
 }
 

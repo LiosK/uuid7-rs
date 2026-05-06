@@ -2,7 +2,9 @@
 
 ## Unreleased
 
+- Refactored the global generator using `reseeding_rng::StdReseedingRng`.
 - Minor refactoring.
+- Updated dependencies.
 
 ## v1.7.0 - 2026-03-31
 
