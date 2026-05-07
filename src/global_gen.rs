@@ -63,10 +63,15 @@ impl GlobalGenInner {
     /// state on Unix if a process fork is detected.
     fn get_mut(&mut self) -> &mut V7Generator<GlobalGenRng> {
         if self.guard.detected_fork() {
-            self.generator.reset_state();
-            let _ = self.generator.rand_source_mut().0.try_reseed();
+            self.reset_generator();
         }
         &mut self.generator
+    }
+
+    #[cold]
+    fn reset_generator(&mut self) {
+        self.generator.reset_state();
+        let _ = self.generator.rand_source_mut().0.try_reseed();
     }
 }
 
