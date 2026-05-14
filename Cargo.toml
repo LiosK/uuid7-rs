@@ -24,7 +24,7 @@ uuid = ["dep:uuid"]
 rand08 = [] # Listed to allow explicit enabling of `rand` v0.8 integration
 
 [dependencies]
-fstr = { version = "0.2", default-features = false }
+fstr = { version = "0.2.20", default-features = false }
 rand_core06 = { package = "rand_core", version = "0.6", default-features = false }
 
 forkguard = { version = "0.1", optional = true }

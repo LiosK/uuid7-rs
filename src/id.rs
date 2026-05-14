@@ -104,7 +104,7 @@ impl Uuid {
         }
 
         // SAFETY: ok because buffer consists of ASCII bytes
-        unsafe { FStr::from_inner_unchecked(buffer) }
+        unsafe { FStr::from_bytes_unchecked(buffer) }
     }
 
     /// Returns the 32-digit hexadecimal string representation without hyphens stored in a
@@ -136,7 +136,7 @@ impl Uuid {
         }
 
         // SAFETY: ok because buffer consists of ASCII bytes
-        unsafe { FStr::from_inner_unchecked(buffer) }
+        unsafe { FStr::from_bytes_unchecked(buffer) }
     }
 
     /// Reports the variant field value of the UUID or, if appropriate, `Nil` or `Max`.
