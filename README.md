@@ -1,6 +1,7 @@
 # uuid7
 
 [![Crates.io](https://img.shields.io/crates/v/uuid7)](https://crates.io/crates/uuid7)
+[![Docs.rs](https://img.shields.io/docsrs/uuid7)](https://docs.rs/uuid7)
 [![License](https://img.shields.io/crates/l/uuid7)](https://github.com/LiosK/uuid7-rs/blob/main/LICENSE)
 
 A Rust implementation of UUID version 7
@@ -123,5 +124,4 @@ Licensed under the Apache License, Version 2.0.
 
 ## See also
 
-- [docs.rs/uuid7](https://docs.rs/uuid7)
 - Related project: [Uuid25: 25-digit case-insensitive UUID encoding](https://crates.io/crates/uuid25)
