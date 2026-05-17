@@ -1,6 +1,6 @@
 # Changelog
 
-## v1.8.0 - Unreleased
+## v1.8.0 - 2026-05-17
 
 - Updated `fstr` to v0.2.20 and followed its new constructor names.
 - Refactored the global generator using `reseeding_rng::StdReseedingRng`.
